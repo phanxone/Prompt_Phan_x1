@@ -175,14 +175,17 @@ async function processCommand(cmd) {
 
     // ถ้ามี OPENAI_API_KEY ให้เรียก GPT-4o และ AI Image Generator
     if (OPENAI_API_KEY) {
-      // 1. วิเคราะห์สินค้าและเขียนแคปชันด้วย GPT-4o
+      // 1. วิเคราะห์สินค้าและเขียนแคปชันด้วย GPT-4o พร้อมสร้างพรอมป์ต์เจนภาพที่ตรงกับสินค้าจริง
       console.log(`  🤖 กำลังเรียก GPT-4o วิเคราะห์สินค้าและเขียนชุดคอนเทนต์ภาษาไทย...`);
+      let storyboard_prompt = '';
+      let cover_prompt = '';
+
       try {
         const userContent = [
-          { type: 'text', text: `คุณเป็นผู้เชี่ยวชาญด้าน TikTok Affiliate ปักตะกร้า ให้วิเคราะห์รูปสินค้าและคำสั่งนี้ แล้วสร้าง JSON ผลลัพธ์ภาษาไทย:\nคำสั่ง: ${cmd.prompt}\n\nตอบกลับเป็น JSON รูปแบบนี้เท่านั้น:\n{\n  "title": "ชื่อสินค้าภาษาไทยสั้นกระชับ ตรงกับสินค้าจริง",\n  "caption": "คำอธิบายคลิป TikTok ชวนปักตะกร้าส้มมุมล่างซ้าย",\n  "hashtags": "แฮชแท็ก 5-7 อัน เช่น #รีวิวสินค้า #TikTokป้ายยา #พิกัดในตะกร้า",\n  "google_flow_prompt": "พรอมป์ต์ภาษาอังกฤษ 6 ซีน [Scene 1] ถึง [Scene 6] ระบุมุมกล้อง แสง และ SFX ไม่มีเสียงพูด ห้ามเห็นใบหน้าบุคคล"\n}` }
+          { type: 'text', text: `คุณเป็นผู้เชี่ยวชาญด้าน TikTok Affiliate ปักตะกร้า ให้วิเคราะห์รูปสินค้าและคำสั่งนี้ แล้วสร้าง JSON ผลลัพธ์ภาษาไทยและพรอมป์ต์สำหรับ AI สร้างรูปภาพ ดังนี้:\nคำสั่ง: ${cmd.prompt}\n\nตอบกลับเป็น JSON รูปแบบนี้เท่านั้น:\n{\n  "title": "ชื่อสินค้าภาษาไทยสั้นกระชับ ตรงกับสินค้าจริงในภาพ",\n  "caption": "คำอธิบายคลิป TikTok ชวนปักตะกร้าส้มมุมล่างซ้าย",\n  "hashtags": "แฮชแท็ก 5-7 อัน เช่น #รีวิวสินค้า #TikTokป้ายยา #พิกัดในตะกร้า",\n  "visual_description": "Detailed English visual description of the product in the images (exact colors, gradient, patterns, graphics, logo, garment/item type, materials)",\n  "storyboard_prompt": "Detailed English prompt for generating a commercial 6-panel photo storyboard collage for e-commerce review featuring the EXACT product described in visual_description. 6 panels showing unboxing, fabric/detail, modeling, features, and final hero display. Clean studio lighting, flat lay and hand demonstration, no faces.",\n  "cover_prompt": "Detailed English prompt for generating a vertical 9:16 aesthetic TikTok hero cover photo featuring the EXACT product described in visual_description with modern commercial studio lighting.",\n  "google_flow_prompt": "พรอมป์ต์ภาษาอังกฤษ 6 ซีน [Scene 1] ถึง [Scene 6] ระบุมุมกล้อง แสง และ SFX ไม่มีเสียงพูด ห้ามเห็นใบหน้าบุคคล"\n}` }
         ];
 
-        images.slice(0, 2).forEach(url => {
+        images.slice(0, 3).forEach(url => {
           userContent.push({
             type: 'image_url',
             image_url: { url: url }
@@ -209,7 +212,9 @@ async function processCommand(cmd) {
           if (parsed.caption) caption = parsed.caption;
           if (parsed.hashtags) hashtags = parsed.hashtags;
           if (parsed.google_flow_prompt) google_flow_prompt = parsed.google_flow_prompt;
-          console.log(`  ✓ GPT-4o สร้างคอนเทนต์สำเร็จ: "${title}"`);
+          if (parsed.storyboard_prompt) storyboard_prompt = parsed.storyboard_prompt;
+          if (parsed.cover_prompt) cover_prompt = parsed.cover_prompt;
+          console.log(`  ✓ GPT-4o วิเคราะห์สินค้าสำเร็จ: "${title}"`);
         } else {
           console.error(`  ⚠️ GPT-4o error:`, await gptRes.text());
         }
@@ -217,19 +222,19 @@ async function processCommand(cmd) {
         console.error(`  ⚠️ GPT-4o notice:`, e.message);
       }
 
-      // 2. เจนภาพสตอรีบอร์ด 6 ซีน ด้วย AI
-      console.log(`  🎨 กำลังเรียก AI เจนภาพสตอรีบอร์ดรวม 6 ซีน...`);
-      const storyboardPrompt = `A 6-panel photo storyboard collage for e-commerce product review. Product: ${title}. High quality realistic commercial photos showing 6 clear progressive steps of unboxing, reviewing, and demonstrating the product. Studio lighting, no faces visible. Clean aesthetic style.`;
-      const aiStoryboard = await generateAiImage(storyboardPrompt, 'ai_storyboard');
+      // 2. เจนภาพสตอรีบอร์ด 6 ซีน ด้วย AI (gpt-image-1-mini)
+      console.log(`  🎨 กำลังเรียก AI เจนภาพสตอรีบอร์ดรวม 6 ซีนตามสินค้าจริง...`);
+      const finalSbPrompt = storyboard_prompt || `A commercial 6-panel photo storyboard collage for e-commerce review: ${title}. High quality realistic commercial photos showing 6 clear progressive steps of unboxing, reviewing, and demonstrating the product. Studio lighting, no faces visible. Clean aesthetic style.`;
+      const aiStoryboard = await generateAiImage(finalSbPrompt, 'ai_storyboard');
       if (aiStoryboard) {
         storyboard_url = aiStoryboard;
         console.log(`  ✓ สร้างภาพสตอรีบอร์ด 6 ซีนสำเร็จ!`);
       }
 
-      // 3. เจนภาพปกคลิป TikTok 9:16 ด้วย AI
-      console.log(`  🎨 กำลังเรียก AI เจนภาพปกคลิป TikTok 9:16...`);
-      const coverPrompt = `Vertical product hero photo for TikTok cover (9:16 aspect ratio). Clean modern commercial studio lighting. Product: ${title}. High detail, hands presenting the product, aesthetic luxury review style.`;
-      const aiCover = await generateAiImage(coverPrompt, 'ai_cover');
+      // 3. เจนภาพปกคลิป TikTok 9:16 ด้วย AI (gpt-image-1-mini)
+      console.log(`  🎨 กำลังเรียก AI เจนภาพปกคลิป TikTok 9:16 ตามสินค้าจริง...`);
+      const finalCvPrompt = cover_prompt || `Vertical 9:16 aesthetic product hero photo for TikTok cover: ${title}. Displayed dynamically with clean studio lighting, trendy aesthetic, high quality commercial photography.`;
+      const aiCover = await generateAiImage(finalCvPrompt, 'ai_cover');
       if (aiCover) {
         cover_url = aiCover;
         console.log(`  ✓ สร้างภาพปก TikTok สำเร็จ!`);
