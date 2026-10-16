@@ -10,12 +10,12 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ดึงค่าคอนฟิกจาก config.js หรือ .env
-let SUPABASE_URL = "https://rxowuthcdgqharqncrsd.supabase.co";
-let SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4b3d1dGhjZGdxaGFycW5jcnNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxMTEzMTAsImV4cCI6MjEwNzY4NzMxMH0.YqkRcUOymTd4QG_Xlrbh-EVtNwTgedZUmsD6HQSTGkk";
+// ดึงค่าคอนฟิกจาก process.env (สำหรับ Cloud/Railway) หรือจาก .env (สำหรับรันบนคอม)
+let SUPABASE_URL = process.env.SUPABASE_URL || "https://rxowuthcdgqharqncrsd.supabase.co";
+let SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4b3d1dGhjZGdxaGFycW5jcnNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxMTEzMTAsImV4cCI6MjEwNzY4NzMxMH0.YqkRcUOymTd4QG_Xlrbh-EVtNwTgedZUmsD6HQSTGkk";
 
-let GEMINI_API_KEY = "";
-let OPENAI_API_KEY = "";
+let GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
+let OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 
 try {
   const envPath = path.join(__dirname, '.env');
@@ -25,10 +25,10 @@ try {
     const keyMatch = envContent.match(/SUPABASE_ANON_KEY\s*=\s*(.*)/);
     const geminiMatch = envContent.match(/GEMINI_API_KEY\s*=\s*(.*)/);
     const openaiMatch = envContent.match(/OPENAI_API_KEY\s*=\s*(.*)/);
-    if (urlMatch && urlMatch[1]) SUPABASE_URL = urlMatch[1].trim();
-    if (keyMatch && keyMatch[1]) SUPABASE_ANON_KEY = keyMatch[1].trim();
-    if (geminiMatch && geminiMatch[1]) GEMINI_API_KEY = geminiMatch[1].trim();
-    if (openaiMatch && openaiMatch[1]) OPENAI_API_KEY = openaiMatch[1].trim();
+    if (urlMatch && urlMatch[1] && !process.env.SUPABASE_URL) SUPABASE_URL = urlMatch[1].trim();
+    if (keyMatch && keyMatch[1] && !process.env.SUPABASE_ANON_KEY) SUPABASE_ANON_KEY = keyMatch[1].trim();
+    if (geminiMatch && geminiMatch[1] && !process.env.GEMINI_API_KEY) GEMINI_API_KEY = geminiMatch[1].trim();
+    if (openaiMatch && openaiMatch[1] && !process.env.OPENAI_API_KEY) OPENAI_API_KEY = openaiMatch[1].trim();
   }
 } catch (e) {
   // ใช้งานค่าเริ่มต้น

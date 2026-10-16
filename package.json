@@ -4,6 +4,7 @@
   "description": "VisionPrompt Studio - Local AI Command & Vision Studio",
   "type": "module",
   "scripts": {
+    "start": "node watcher.js",
     "dev": "vite --port 8080 --open",
     "watch": "node watcher.js",
     "build": "vite build",
