@@ -127,10 +127,9 @@ body {
   z-index: 2;
   max-width: 1020px;
   margin: 0 auto;
-  padding: 24px 20px 48px;
+  padding: 20px 20px 28px;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
 }
 
 /* Header */
@@ -1161,11 +1160,7 @@ pre {
 
 /* Footer */
 .app-footer {
-  margin-top: auto;
-  padding-top: 40px;
-  text-align: center;
-  font-size: 0.8rem;
-  color: var(--text-muted);
+  display: none !important;
 }
 
 /* ==========================================================================
@@ -2212,6 +2207,55 @@ pre {
   }
 }
 
+/* UPlord Fantasy Realm skin */
+:root {
+  --primary: #b88cff;
+  --primary-dark: #6d4ac4;
+  --primary-gradient: linear-gradient(135deg, #c99cff 0%, #8d63e8 52%, #4b2b94 100%);
+  --accent-green: #9ce6c4;
+  --text-primary: #fff8ed;
+  --text-secondary: #d8cbe8;
+  --text-muted: #9d8fb6;
+  --border-subtle: rgba(218, 188, 255, .18);
+  --border-glow: rgba(203, 153, 255, .62);
+}
+
+body {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(130, 79, 188, .35), transparent 32%),
+    radial-gradient(circle at 88% 20%, rgba(43, 132, 137, .22), transparent 28%),
+    linear-gradient(145deg, #0b0716 0%, #17102b 48%, #071b24 100%);
+  color: var(--text-primary);
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: .18;
+  background-image: radial-gradient(rgba(255,255,255,.55) 1px, transparent 1px);
+  background-size: 46px 46px;
+  mask-image: linear-gradient(to bottom, black, transparent 78%);
+}
+
+.grid-overlay { opacity: .12; background-image: linear-gradient(rgba(203,153,255,.12) 1px, transparent 1px), linear-gradient(90deg, rgba(203,153,255,.12) 1px, transparent 1px); }
+.app-header { border-bottom-color: rgba(203,153,255,.2); }
+.brand-icon, .preloader-core-icon { border-radius: 28px; box-shadow: 0 0 28px rgba(190,126,255,.4), inset 0 0 18px rgba(255,255,255,.12); }
+.badge-tag, .preloader-badge { background: linear-gradient(135deg, #f3cb86, #c27cff); color: #24123f; }
+.hero-pill { border-color: rgba(213,171,255,.38); background: rgba(101,58,145,.22); color: #e4c7ff; box-shadow: 0 0 26px rgba(183,125,255,.12); }
+.hero-title { font-family: Georgia, 'Times New Roman', serif; letter-spacing: .01em; text-shadow: 0 0 28px rgba(202,157,255,.35); }
+.glass-panel, .command-card { background: linear-gradient(145deg, rgba(35,22,59,.82), rgba(8,27,37,.72)); border-color: rgba(209,166,255,.24); box-shadow: 0 24px 70px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08); }
+.section-badge { background: rgba(195,141,255,.2); border-color: rgba(214,171,255,.42); color: #e8cfff; }
+.dropzone { border-color: rgba(203,153,255,.3); background: rgba(12,8,28,.3); }
+.dropzone:hover, .dropzone.drag-over { border-color: #d2a4ff; box-shadow: 0 0 34px rgba(179,116,255,.18); }
+.upload-icon-bubble { background: linear-gradient(145deg, rgba(192,136,255,.3), rgba(60,190,181,.18)); color: #e7caff; }
+.chip-btn, .btn-secondary, .btn-vault { border-color: rgba(203,153,255,.3); background: rgba(255,255,255,.045); }
+.btn-primary { background: var(--primary-gradient); box-shadow: 0 12px 30px rgba(128,75,205,.34); }
+.btn-primary:hover { box-shadow: 0 16px 36px rgba(164,100,255,.48); }
+.ambient-glow.glow-top-left { background: #9c60d5; opacity: .28; }
+.ambient-glow.glow-bottom-right { background: #2fa7a0; opacity: .2; }
+
 /* ==========================================================================
    Dedicated Product Content Detail Modal (แยกหน้าต่างดูผลงาน ไม่ปนกับหน้าหลัก)
    ========================================================================== */
@@ -2582,3 +2626,36 @@ pre {
   color: #e2e8f0;
   background: rgba(255, 255, 255, 0.05);
 }
+
+/* 3D motion layer */
+body { perspective: 1400px; }
+.app-wrapper { transform-style: preserve-3d; }
+.app-wrapper::before, .app-wrapper::after {
+  content: ''; position: fixed; width: 210px; height: 210px;
+  border: 1px solid rgba(224,188,255,.18); border-radius: 32% 68% 55% 45%;
+  pointer-events: none; z-index: -1; animation: realmFloat 11s ease-in-out infinite;
+  box-shadow: inset 0 0 36px rgba(183,125,255,.16), 0 0 28px rgba(183,125,255,.12);
+}
+.app-wrapper::before { top: 18%; left: -110px; transform: rotate(28deg); }
+.app-wrapper::after { right: -100px; bottom: 12%; animation-delay: -5s; transform: rotate(-24deg) scale(.72); box-shadow: inset 0 0 36px rgba(69,220,201,.14), 0 0 28px rgba(69,220,201,.1); }
+.app-header { transform: translateZ(22px); box-shadow: 0 18px 48px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.12); animation: panelRise .8s both; }
+.hero-section { position: relative; transform-style: preserve-3d; animation: panelRise .9s .08s both; }
+.hero-section::after { content: '✦'; position: absolute; top: 12px; right: 12%; color: #f1c9ff; font-size: 1.5rem; filter: drop-shadow(0 0 16px #c47cff); animation: twinkle 2.8s ease-in-out infinite; }
+.hero-pill { transform: translateZ(28px); animation: floatBadge 4s ease-in-out infinite; }
+.hero-title { transform: translateZ(34px); text-shadow: 0 2px 0 rgba(74,35,111,.7), 0 0 34px rgba(202,157,255,.55); }
+.hero-description { transform: translateZ(18px); }
+.command-card { transform: translateZ(14px); isolation: isolate; animation: panelRise .95s .16s both; }
+.command-card::before { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; background: linear-gradient(120deg,rgba(255,255,255,.35),transparent 24%,transparent 68%,rgba(108,239,221,.28)); -webkit-mask: linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; opacity: .8; }
+.card-section { animation: sectionDrift 7s ease-in-out infinite; }
+.card-section:nth-child(2) { animation-delay: -2.2s; }
+.card-section:nth-child(3) { animation-delay: -4.4s; }
+.dropzone:hover, .textarea-container:focus-within { transform: translateY(-4px) translateZ(12px) rotateX(1deg); box-shadow: 0 18px 42px rgba(55,20,90,.28), 0 0 36px rgba(183,125,255,.16); }
+.btn-primary { position: relative; overflow: hidden; transform: translateZ(18px); }
+.btn-primary::after { content: ''; position: absolute; inset: -60% -20%; background: linear-gradient(110deg,transparent 38%,rgba(255,255,255,.35) 50%,transparent 62%); transform: translateX(-80%) rotate(12deg); animation: sheen 4.6s ease-in-out infinite; pointer-events: none; }
+@keyframes panelRise { from { opacity: 0; transform: translateY(18px) translateZ(0); } to { opacity: 1; transform: translateY(0) translateZ(18px); } }
+@keyframes realmFloat { 0%,100% { margin-top: 0; border-radius: 32% 68% 55% 45%; } 50% { margin-top: -26px; border-radius: 58% 42% 35% 65%; } }
+@keyframes floatBadge { 0%,100% { transform: translateY(0) translateZ(28px); } 50% { transform: translateY(-5px) translateZ(38px); } }
+@keyframes twinkle { 0%,100% { opacity: .35; transform: scale(.8) rotate(0); } 50% { opacity: 1; transform: scale(1.25) rotate(18deg); } }
+@keyframes sectionDrift { 0%,100% { transform: translateZ(0); } 50% { transform: translateZ(3px); } }
+@keyframes sheen { 0%,62%,100% { transform: translateX(-90%) rotate(12deg); } 78% { transform: translateX(90%) rotate(12deg); } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
