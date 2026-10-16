@@ -78,6 +78,62 @@ async function checkPendingCommands() {
   }
 }
 
+// ฟังก์ชันเรียก OpenAI เจนภาพ และอัปโหลดเข้า Supabase Storage
+async function generateAiImage(promptText, filenamePrefix = 'ai_image') {
+  if (!OPENAI_API_KEY) return null;
+  try {
+    const res = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-image-1-mini',
+        prompt: promptText,
+        n: 1,
+        size: '1024x1024'
+      })
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error(`  ⚠️ OpenAI Image Gen Error (${res.status}):`, errText);
+      return null;
+    }
+
+    const data = await res.json();
+    const b64 = data.data && data.data[0] ? (data.data[0].b64_json || null) : null;
+    const directUrl = data.data && data.data[0] ? (data.data[0].url || null) : null;
+
+    if (b64) {
+      const buffer = Buffer.from(b64, 'base64');
+      const storagePath = `${filenamePrefix}_${Date.now()}_${Math.floor(Math.random() * 10000)}.png`;
+      const up = await fetch(`${SUPABASE_URL}/storage/v1/object/command-images/${storagePath}`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'image/png'
+        },
+        body: buffer
+      });
+
+      if (up.ok) {
+        const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/command-images/${storagePath}`;
+        console.log(`  ✓ อัปโหลดภาพ AI เข้า Supabase Storage สำเร็จ: ${publicUrl}`);
+        return publicUrl;
+      } else {
+        console.error(`  ⚠️ Supabase upload error:`, await up.text());
+      }
+    }
+    return directUrl;
+  } catch (err) {
+    console.error(`  ⚠️ Image gen helper error:`, err.message);
+    return null;
+  }
+}
+
 // จัดการคำสั่งที่พบ
 async function processCommand(cmd) {
   const shortId = cmd.id.substring(0, 8);
@@ -89,20 +145,7 @@ async function processCommand(cmd) {
   console.log(`  📝 พรอมป์ต์: ${promptSummary}...`);
   console.log(`  🖼️ รูปภาพอ้างอิง: ${images.length} รูป`);
 
-  // อัปเดตสถานะเป็น processing แบบ Atomic (ถ้ามี Worker อื่นรับไปแล้วจะข้ามทันที)
   try {
-    const patchRes = await fetch(`${SUPABASE_URL}/rest/v1/commands?id=eq.${cmd.id}&status=eq.pending`, {
-      method: 'PATCH',
-      headers: HEADERS,
-      body: JSON.stringify({ status: 'processing', updated_at: new Date().toISOString() })
-    });
-    const patchData = await patchRes.json();
-    if (!patchData || patchData.length === 0) {
-      console.log(`  ℹ️ คำสั่งนี้ถูกประมวลผลโดย Worker อื่นไปแล้ว ข้าม`);
-      return;
-    }
-    console.log(`  ⚡ อัปเดตสถานะเป็น: 'processing'`);
-
     // ตรวจสอบว่ามีข้อมูลใน generation_results แล้วหรือยัง
     const checkRes = await fetch(`${SUPABASE_URL}/rest/v1/generation_results?command_id=eq.${cmd.id}`, {
       headers: HEADERS
@@ -110,46 +153,29 @@ async function processCommand(cmd) {
     const existing = await checkRes.json();
     
     if (existing && existing.length > 0) {
-      console.log(`  ✓ คำสั่งนี้มีผลลัพธ์ใน generation_results อยู่แล้ว`);
-      await fetch(`${SUPABASE_URL}/rest/v1/commands?id=eq.${cmd.id}`, {
-        method: 'PATCH',
-        headers: HEADERS,
-        body: JSON.stringify({ status: 'completed' })
-      });
+      console.log(`  ✓ คำสั่งนี้มีผลลัพธ์ใน generation_results อยู่แล้ว ข้าม`);
       return;
     }
 
     console.log(`  🎨 AI กำลังสร้างชุดคอนเทนต์รีวิวสินค้า...`);
 
-    // กำหนดชื่อสินค้าและเนื้อหาตามพรอมป์ต์
-    let title = 'ครีมโสมขมิ้น Nawanna (GINSENG PLUS TURMERIC Bright Cream)';
-    let caption = 'หน้าใสไร้ฝ้ากระด้วยครีมโสมขมิ้นในตำนาน Nawanna! เนื้อครีมสีเหลืองทองเนียนนุ่ม ซึมไว เกลี่ยง่าย บางเบาไม่เหนอะหนะ เผยผิวเนียนใสเปล่งประกายออร่า กดสั่งที่ตะกร้าส้มมุมล่างซ้ายได้เลย 🧡✨';
-    let hashtags = '#ครีมโสมขมิ้น #Nawanna #โสมขมิ้นไข่มุก #รีวิวบิวตี้ #TikTokป้ายยา #พิกัดในตะกร้า';
-    let storyboard_url = 'https://rxowuthcdgqharqncrsd.supabase.co/storage/v1/object/public/command-images/ai_storyboard_nawanna_85341102.jpg';
-    let cover_url = 'https://rxowuthcdgqharqncrsd.supabase.co/storage/v1/object/public/command-images/ai_cover_nawanna_85341102.jpg';
+    // กำหนดชื่อสินค้าและเนื้อหาเริ่มต้น
+    let title = 'ชุดคอนเทนต์รีวิวสินค้า TikTok (ปักตะกร้า)';
+    let caption = 'รีวิวไอเทมตัวดังที่ต้องมีติดบ้าน! ใช้งานง่าย คุณภาพแน่น คุ้มค่าเกินราคา สนใจสั่งซื้อจิ้มที่ตะกร้าส้มมุมล่างซ้ายได้เลยครับ 🛒✨';
+    let hashtags = '#รีวิวสินค้า #TikTokป้ายยา #ของดีบอกต่อ #พิกัดในตะกร้า #ใช้ดีบอกต่อ';
+    let storyboard_url = images[0] || 'https://rxowuthcdgqharqncrsd.supabase.co/storage/v1/object/public/command-images/ai_storyboard_nawanna_85341102.jpg';
+    let cover_url = images[1] || images[0] || 'https://rxowuthcdgqharqncrsd.supabase.co/storage/v1/object/public/command-images/ai_cover_nawanna_85341102.jpg';
 
-    if (cmd.prompt && !cmd.prompt.includes('โสม') && !cmd.prompt.includes('Nawanna')) {
-      title = 'ชุดคอนเทนต์รีวิวสินค้า TikTok (ปักตะกร้า)';
-      caption = 'รีวิวไอเทมตัวดังที่ต้องมีติดบ้าน! ใช้งานง่าย คุณภาพแน่น คุ้มค่าเกินราคา สนใจสั่งซื้อจิ้มที่ตะกร้าส้มมุมล่างซ้ายได้เลยครับ 🛒✨';
-      hashtags = '#รีวิวสินค้า #TikTokป้ายยา #ของดีบอกต่อ #พิกัดในตะกร้า #ใช้ดีบอกต่อ';
-      if (images[0]) storyboard_url = images[0];
-      if (images[1]) cover_url = images[1];
-    }
+    let google_flow_prompt = `[Scene 1 - Macro Unboxing]: Extreme close-up vertical shot (9:16). Clean white marble vanity table with warm soft studio lighting. A female hand gently lifts the product packaging. Subtle zoom in. SFX: Gentle paper rustle.
+[Scene 2 - Product Hero Focus]: Close-up rotating shot. Highlighting the product details and label. Camera does a smooth orbit around the product. SFX: Clean surface placement chime.
+[Scene 3 - Demonstration]: Eye-level macro shot showing product features and demonstration. SFX: Satisfying crisp click.
+[Scene 4 - Usage]: Ultra macro capture demonstrating functionality. SFX: Smooth velvet sound effect.
+[Scene 5 - In-Action]: Close-up shot showing real-life application and quality.
+[Scene 6 - Final Hero Display]: Medium close-up hero shot softly lit with morning light. Camera slow pull-back. SFX: Subtle warm synth swell, clean fade out.`;
 
-    const google_flow_prompt = `[Scene 1 - Macro Unboxing]: Extreme close-up vertical shot (9:16). Clean white marble vanity table with warm soft studio lighting. A female hand with natural manicured nails gently lifts the golden packaging of the product. Subtle zoom in. SFX: Gentle paper rustle, soft ambient room tone.
-
-[Scene 2 - Product Hero Focus]: Close-up rotating shot. The transparent glass jar with luxurious gold cap sits centrally under direct soft keylight, highlighting the product label and herbal extract formula. Camera does a smooth 15-degree orbit around the jar. SFX: Clean surface placement chime.
-
-[Scene 3 - Cap Opening]: Eye-level macro shot. The hand smoothly twists open the glossy golden cap, revealing the sealed inner hygienic lid. Gentle tilt down as the lid is lifted. SFX: Satisfying crisp plastic click, soft seal peel.
-
-[Scene 4 - Cream Scoop]: Ultra macro high-speed capture. A delicate spatula scoops a dollop of vibrant creamy texture, showing rich viscosity and dewy sheen. Depth of field focused tightly on the cream peak. SFX: Smooth velvet scoop sound effect.
-
-[Scene 5 - Texture Blend on Hand]: Close-up shot. Hand applies a pea-sized amount of the cream onto the back of the other hand, smoothly spreading it in circular motions. The cream melts instantaneously into a translucent glow with zero grease. SFX: Soft, soothing skin glide sound.
-
-[Scene 6 - Final Hero Display]: Medium close-up hero shot. Both the open jar and the outer box stand side-by-side on the vanity, softly lit with golden morning sunbeams from the side. Hand places jar into hero position and exits frame. Camera slow pull-back. SFX: Subtle warm synth swell, clean fade out.`;
-
-    // ถ้ามี OPENAI_API_KEY ให้เรียก GPT-4o วิเคราะห์สินค้าและเขียนชุดคอนเทนต์จริง
+    // ถ้ามี OPENAI_API_KEY ให้เรียก GPT-4o และ AI Image Generator
     if (OPENAI_API_KEY) {
+      // 1. วิเคราะห์สินค้าและเขียนแคปชันด้วย GPT-4o
       console.log(`  🤖 กำลังเรียก GPT-4o วิเคราะห์สินค้าและเขียนชุดคอนเทนต์ภาษาไทย...`);
       try {
         const userContent = [
@@ -184,37 +210,29 @@ async function processCommand(cmd) {
           if (parsed.hashtags) hashtags = parsed.hashtags;
           if (parsed.google_flow_prompt) google_flow_prompt = parsed.google_flow_prompt;
           console.log(`  ✓ GPT-4o สร้างคอนเทนต์สำเร็จ: "${title}"`);
+        } else {
+          console.error(`  ⚠️ GPT-4o error:`, await gptRes.text());
         }
       } catch (e) {
         console.error(`  ⚠️ GPT-4o notice:`, e.message);
       }
 
-      console.log(`  🎨 กำลังเรียก DALL-E 3 เจนภาพปกคลิป TikTok 9:16...`);
-      try {
-        const dalleRes = await fetch('https://api.openai.com/v1/images/generations', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${OPENAI_API_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: 'dall-e-3',
-            prompt: `Vertical product review photo for TikTok (9:16 aspect ratio). Clean modern studio lighting. Product: ${title}. High detail, hands only holding or presenting the product, clean background, aesthetic review style.`,
-            n: 1,
-            size: '1024x1792',
-            quality: 'standard'
-          })
-        });
+      // 2. เจนภาพสตอรีบอร์ด 6 ซีน ด้วย AI
+      console.log(`  🎨 กำลังเรียก AI เจนภาพสตอรีบอร์ดรวม 6 ซีน...`);
+      const storyboardPrompt = `A 6-panel photo storyboard collage for e-commerce product review. Product: ${title}. High quality realistic commercial photos showing 6 clear progressive steps of unboxing, reviewing, and demonstrating the product. Studio lighting, no faces visible. Clean aesthetic style.`;
+      const aiStoryboard = await generateAiImage(storyboardPrompt, 'ai_storyboard');
+      if (aiStoryboard) {
+        storyboard_url = aiStoryboard;
+        console.log(`  ✓ สร้างภาพสตอรีบอร์ด 6 ซีนสำเร็จ!`);
+      }
 
-        if (dalleRes.ok) {
-          const dalleJson = await dalleRes.json();
-          if (dalleJson.data && dalleJson.data[0]?.url) {
-            cover_url = dalleJson.data[0].url;
-            console.log(`  ✓ DALL-E 3 เจนภาพปกสำเร็จ!`);
-          }
-        }
-      } catch (dErr) {
-        console.error(`  ⚠️ DALL-E 3 notice:`, dErr.message);
+      // 3. เจนภาพปกคลิป TikTok 9:16 ด้วย AI
+      console.log(`  🎨 กำลังเรียก AI เจนภาพปกคลิป TikTok 9:16...`);
+      const coverPrompt = `Vertical product hero photo for TikTok cover (9:16 aspect ratio). Clean modern commercial studio lighting. Product: ${title}. High detail, hands presenting the product, aesthetic luxury review style.`;
+      const aiCover = await generateAiImage(coverPrompt, 'ai_cover');
+      if (aiCover) {
+        cover_url = aiCover;
+        console.log(`  ✓ สร้างภาพปก TikTok สำเร็จ!`);
       }
     }
 
