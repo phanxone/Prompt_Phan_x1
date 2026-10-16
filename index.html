@@ -6,17 +6,24 @@
   <meta name="description" content="UPlord — อาณาจักรแฟนตาซีสำหรับสร้างสรรค์ภาพและเรื่องราวด้วย AI">
   <title>UPlord • The Creative Realm</title>
   
-  <!-- Google Fonts: Plus Jakarta Sans & Noto Sans Thai -->
+  <!-- Google Fonts: Plus Jakarta Sans, Noto Sans Thai, Galada, Manrope, Outfit, Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Galada&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@400;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Outfit:wght@400;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Favicon -->
   <link rel="icon" type="image/jpeg" href="logo.jpg">
   
+  <!-- 3D & Creative Motion Libraries (GSAP, Google Model-Viewer) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+  
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Ambient Rising Bubbles Layer -->
+  <div id="bubbles-container"></div>
+
   <!-- High-Tech Cyber Splash Screen (หน้าโหลดเข้าสู่ระบบ) -->
   <div class="app-preloader" id="appPreloader" role="dialog" aria-modal="true" aria-label="กำลังเข้าสู่ระบบ">
     <div class="preloader-content">
@@ -104,13 +111,115 @@
 
     <!-- Main Content Area -->
     <main class="main-content">
-      <!-- Title & Headline -->
-      <section class="hero-section">
-        <div class="hero-pill">
-          <span class="sparkle-icon">✦</span> เปิดประตูสู่เวทมนตร์แห่งภาพ
+      <!-- 3D Soda-Style Interactive Motion Hero Stage -->
+      <section class="hero-3d-stage" id="hero3DStage">
+        <!-- Leaves Parallax Background -->
+        <div class="stage-leaves">
+          <model-viewer class="stage-leaf l1" src="https://api.getlayers.ai/storage/v1/object/public/public/assets/soda-14ff8a788d/leaves.glb" environment-image="neutral" exposure="1.0" interaction-prompt="none" camera-orbit="45deg 75deg 105%"></model-viewer>
+          <model-viewer class="stage-leaf l2" src="https://api.getlayers.ai/storage/v1/object/public/public/assets/soda-14ff8a788d/leaves.glb" environment-image="neutral" exposure="1.0" interaction-prompt="none" camera-orbit="-30deg 60deg 105%"></model-viewer>
+          <model-viewer class="stage-leaf l3" src="https://api.getlayers.ai/storage/v1/object/public/public/assets/soda-14ff8a788d/leaves.glb" environment-image="neutral" exposure="1.0" interaction-prompt="none" camera-orbit="120deg 85deg 105%"></model-viewer>
+          <model-viewer class="stage-leaf l4" src="https://api.getlayers.ai/storage/v1/object/public/public/assets/soda-14ff8a788d/leaves.glb" environment-image="neutral" exposure="1.0" interaction-prompt="none" camera-orbit="10deg 45deg 105%"></model-viewer>
         </div>
-        <h2 class="hero-title">สร้างโลกของคุณให้มีชีวิต</h2>
-        <p class="hero-description">นำภาพ แรงบันดาลใจ และถ้อยคำของคุณมาร่ายมนตร์ให้กลายเป็นผลงานใหม่ใน UPlord</p>
+
+        <!-- Background Berries (Behind Can) -->
+        <div class="stage-berries-bg">
+          <model-viewer class="stage-berry b7" src="https://api.getlayers.ai/storage/v1/object/public/public/assets/soda-14ff8a788d/cherry.glb" environment-image="neutral" exposure="1.0" interaction-prompt="none" camera-orbit="-20deg 110deg 105%"></model-viewer>
+          <model-viewer class="stage-berry b8" src="https://api.getlayers.ai/storage/v1/object/public/public/assets/soda-14ff8a788d/cherry.glb" environment-image="neutral" exposure="1.0" interaction-prompt="none" camera-orbit="160deg 45deg 105%"></model-viewer>
+          <model-viewer class="stage-berry b9" src="https://api.getlayers.ai/storage/v1/object/public/public/assets/soda-14ff8a788d/cherry.glb" environment-image="neutral" exposure="1.0" interaction-prompt="none" camera-orbit="45deg 20deg 105%"></model-viewer>
+        </div>
+
+        <!-- Left Column: Title & CTA -->
+        <div class="stage-left">
+          <div class="stage-pill">
+            <span class="sparkle-icon">✦</span> นวัตกรรม AI คอนเทนต์ 3D ไวรัล
+          </div>
+          <h1 class="stage-title">
+            <span class="outline">Viral</span><br>
+            Vision
+          </h1>
+          <p class="stage-desc">
+            ยกระดับการขายของออนไลน์ด้วย AI เปลี่ยนภาพสินค้าของคุณเป็นชุดคอนเทนต์ TikTok, ภาพสตอรีบอร์ด 6 ช่อง และแคปชันปักตะกร้าแบบอัตโนมัติ
+          </p>
+          <div class="stage-cta-row">
+            <a href="#commandPanel" class="btn-stage-primary" id="btnQuickStart">
+              <span>เริ่มสร้างภาพทันที</span>
+              <span class="stage-plus-icon">+</span>
+            </a>
+            <button type="button" class="btn-stage-secondary" id="btnPresetStoryboard">
+              🎬 สตอรีบอร์ด 6 ช่อง
+            </button>
+            <button type="button" class="btn-stage-secondary" id="btnPresetCover">
+              📱 ปกคลิป 9:16
+            </button>
+          </div>
+          <div class="stage-award">
+            <div class="award-icon-box">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15L15 18L19 14"></path><path d="M7 10L12 15L17 10"></path></svg>
+            </div>
+            <div class="award-text">
+              <span class="award-badge-title">AI CREATIVE SUITE 2026</span>
+              <span class="award-badge-sub">TIKTOK AFFILIATE AUTOMATION</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Center 3D Floating Can (Model Viewer) -->
+        <div class="stage-center">
+          <model-viewer id="product-model" 
+            src="https://api.getlayers.ai/storage/v1/object/public/public/assets/soda-14ff8a788d/deit_soda2.glb" 
+            alt="PHANX1 3D Can" 
+            camera-controls 
+            disable-zoom 
+            shadow-intensity="0" 
+            environment-image="neutral" 
+            exposure="1.45" 
+            interaction-prompt="none" 
+            camera-orbit="0deg 90deg 380%" 
+            field-of-view="30deg" 
+            class="main-product-3d">
+          </model-viewer>
+        </div>
+
+        <!-- Foreground Berries (Cursor Force Field Repulsion) -->
+        <div class="stage-berries-fg">
+          <model-viewer class="stage-berry b1" src="https://api.getlayers.ai/storage/v1/object/public/public/assets/soda-14ff8a788d/cherry.glb" environment-image="neutral" exposure="1.2" interaction-prompt="none" camera-orbit="45deg 120deg 105%"></model-viewer>
+          <model-viewer class="stage-berry b2" src="https://api.getlayers.ai/storage/v1/object/public/public/assets/soda-14ff8a788d/cherry.glb" environment-image="neutral" exposure="1.2" interaction-prompt="none" camera-orbit="-120deg 45deg 105%"></model-viewer>
+          <model-viewer class="stage-berry b3" src="https://api.getlayers.ai/storage/v1/object/public/public/assets/soda-14ff8a788d/cherry.glb" environment-image="neutral" exposure="1.2" interaction-prompt="none" camera-orbit="200deg 90deg 105%"></model-viewer>
+          <model-viewer class="stage-berry b4" src="https://api.getlayers.ai/storage/v1/object/public/public/assets/soda-14ff8a788d/cherry.glb" environment-image="neutral" exposure="1.2" interaction-prompt="none" camera-orbit="10deg 20deg 105%"></model-viewer>
+          <model-viewer class="stage-berry b5" src="https://api.getlayers.ai/storage/v1/object/public/public/assets/soda-14ff8a788d/cherry.glb" environment-image="neutral" exposure="1.2" interaction-prompt="none" camera-orbit="-45deg 160deg 105%"></model-viewer>
+          <model-viewer class="stage-berry b6" src="https://api.getlayers.ai/storage/v1/object/public/public/assets/soda-14ff8a788d/cherry.glb" environment-image="neutral" exposure="1.2" interaction-prompt="none" camera-orbit="80deg 75deg 105%"></model-viewer>
+        </div>
+
+        <!-- Right Column: Product Flavor Carousel & Side Title -->
+        <div class="stage-right">
+          <div class="product-carousel">
+            <div class="carousel-cards">
+              <div class="stage-card active" data-flavor="classic" title="คลิกสลับโหมด AI Storyboard 6 ช่อง">
+                <img src="https://api.getlayers.ai/storage/v1/object/public/public/assets/soda-14ff8a788d/Green Soda.png" alt="AI Storyboard">
+                <div class="card-info">
+                  <span>AI Storyboard</span>
+                  <span>6 ซีน • ฟรี</span>
+                </div>
+              </div>
+              <div class="stage-card" data-flavor="blue" title="คลิกสลับโหมด TikTok Cover 9:16">
+                <img src="https://api.getlayers.ai/storage/v1/object/public/public/assets/soda-14ff8a788d/Blue Soda.png" alt="TikTok Cover" style="filter: brightness(0.8);">
+                <div class="card-info">
+                  <span>TikTok Cover</span>
+                  <span>9:16 HD • ฟรี</span>
+                </div>
+              </div>
+            </div>
+            <div class="carousel-nav">
+              <button type="button" class="nav-arrow" id="carouselPrev" title="ก่อนหน้า">←</button>
+              <button type="button" class="nav-arrow" id="carouselNext" title="ถัดไป">→</button>
+            </div>
+          </div>
+
+          <h2 class="stage-side-title">
+            <span class="outline">Effortlessly</span><br>
+            Viral
+          </h2>
+        </div>
       </section>
 
       <!-- Command Center Card -->
@@ -611,9 +720,16 @@
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toastContainer" aria-live="polite"></div>
 
+  <!-- Hidden 3D Models Preload (prevents hitch during flavor switch) -->
+  <div style="display: none;" aria-hidden="true">
+    <model-viewer src="https://api.getlayers.ai/storage/v1/object/public/public/assets/soda-14ff8a788d/blueberry.glb"></model-viewer>
+    <model-viewer src="https://api.getlayers.ai/storage/v1/object/public/public/assets/soda-14ff8a788d/cherry.glb"></model-viewer>
+  </div>
+
   <!-- Supabase JS Client & Config -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script type="module" src="config.js"></script>
   <script type="module" src="app.js"></script>
+  <script type="module" src="motion.js"></script>
 </body>
 </html>
