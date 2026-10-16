@@ -1249,10 +1249,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Theme Toggle Logic ---
   let isLight = false;
-  btnThemeToggle.addEventListener('click', () => {
-    isLight = !isLight;
-    document.documentElement.setAttribute('data-theme', isLight ? 'light' : 'dark');
-    showToast(`สลับเป็นธีม${isLight ? 'สว่าง (Light)' : 'มืด (Dark)'}`);
-  });
+  if (btnThemeToggle) {
+    btnThemeToggle.addEventListener('click', () => {
+      isLight = !isLight;
+      document.documentElement.setAttribute('data-theme', isLight ? 'light' : 'dark');
+      showToast(`สลับเป็นธีม${isLight ? 'สว่าง (Light)' : 'มืด (Dark)'}`);
+    });
+  }
 });
 
