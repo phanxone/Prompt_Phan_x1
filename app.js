@@ -480,15 +480,20 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // --- Submit Command: Upload to Supabase Storage & Insert Table ---
+  let isSubmitting = false;
   btnSubmitCommand.addEventListener('click', executeCommand);
 
   async function executeCommand() {
+    if (isSubmitting) return;
+
     const promptText = promptInput.value.trim();
     if (selectedFiles.length === 0 && !promptText) {
       showToast('กรุณาอัปโหลดรูปภาพ หรือพิมพ์ข้อความคำสั่งก่อนส่ง', 'error');
       promptInput.focus();
       return;
     }
+
+    isSubmitting = true;
 
     // Set Loading State on Button
     btnSubmitCommand.disabled = true;
@@ -701,6 +706,7 @@ document.addEventListener('DOMContentLoaded', () => {
       hideLoadingScreen();
       showToast(err.message || 'เกิดข้อผิดพลาดในการส่งข้อมูล', 'error');
     } finally {
+      isSubmitting = false;
       btnSubmitCommand.disabled = false;
       btnSpinner.style.display = 'none';
       btnIcon.style.display = 'inline-flex';

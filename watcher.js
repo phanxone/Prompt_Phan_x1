@@ -89,13 +89,18 @@ async function processCommand(cmd) {
   console.log(`  📝 พรอมป์ต์: ${promptSummary}...`);
   console.log(`  🖼️ รูปภาพอ้างอิง: ${images.length} รูป`);
 
-  // อัปเดตสถานะเป็น processing
+  // อัปเดตสถานะเป็น processing แบบ Atomic (ถ้ามี Worker อื่นรับไปแล้วจะข้ามทันที)
   try {
-    await fetch(`${SUPABASE_URL}/rest/v1/commands?id=eq.${cmd.id}`, {
+    const patchRes = await fetch(`${SUPABASE_URL}/rest/v1/commands?id=eq.${cmd.id}&status=eq.pending`, {
       method: 'PATCH',
       headers: HEADERS,
       body: JSON.stringify({ status: 'processing', updated_at: new Date().toISOString() })
     });
+    const patchData = await patchRes.json();
+    if (!patchData || patchData.length === 0) {
+      console.log(`  ℹ️ คำสั่งนี้ถูกประมวลผลโดย Worker อื่นไปแล้ว ข้าม`);
+      return;
+    }
     console.log(`  ⚡ อัปเดตสถานะเป็น: 'processing'`);
 
     // ตรวจสอบว่ามีข้อมูลใน generation_results แล้วหรือยัง
@@ -211,6 +216,14 @@ async function processCommand(cmd) {
       } catch (dErr) {
         console.error(`  ⚠️ DALL-E 3 notice:`, dErr.message);
       }
+    }
+
+    // ตรวจสอบความปลอดภัยครั้งสุดท้าย ไม่ให้แทรกซ้ำ
+    const checkFinal = await fetch(`${SUPABASE_URL}/rest/v1/generation_results?command_id=eq.${cmd.id}`, { headers: HEADERS });
+    const existingFinal = await checkFinal.json();
+    if (existingFinal && existingFinal.length > 0) {
+      console.log(`  ✓ คำสั่งนี้ถูกบันทึกผลลัพธ์ไปแล้ว ข้าม`);
+      return;
     }
 
     // บันทึกลง generation_results
