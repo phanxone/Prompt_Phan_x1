@@ -4,3 +4,9 @@ const CONFIG = {
   SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4b3d1dGhjZGdxaGFycW5jcnNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxMTEzMTAsImV4cCI6MjEwNzY4NzMxMH0.YqkRcUOymTd4QG_Xlrbh-EVtNwTgedZUmsD6HQSTGkk",
   SUPABASE_BUCKET: "command-images"
 };
+
+if (typeof window !== 'undefined') {
+  window.CONFIG = CONFIG;
+}
+
+export default CONFIG;
