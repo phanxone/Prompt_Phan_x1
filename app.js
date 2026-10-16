@@ -770,21 +770,24 @@ document.addEventListener('DOMContentLoaded', () => {
           .from('generation_results')
           .select('*')
           .order('created_at', { ascending: false })
-          .limit(1);
+          .limit(5);
 
         if (!resError && resDataList && resDataList.length > 0) {
-          const row = resDataList[0];
-          recordId = row.command_id || row.id;
-          resultItem = {
-            title: row.title,
-            caption: row.caption,
-            hashtags: row.hashtags,
-            google_flow_prompt: row.google_flow_prompt,
-            images: {
-              storyboard_url: row.storyboard_url,
-              cover_url: row.cover_url
-            }
-          };
+          const excludedIds = ['021c07c5-e340-4516-b93a-9ded0d1c3278', '9dc163a8-744d-4e7c-9ca1-5246e8b271b1', '5258062e-eba4-4dc3-869f-b971cd3438da'];
+          const validRow = resDataList.find(r => !excludedIds.includes(r.id));
+          if (validRow) {
+            recordId = validRow.command_id || validRow.id;
+            resultItem = {
+              title: validRow.title,
+              caption: validRow.caption,
+              hashtags: validRow.hashtags,
+              google_flow_prompt: validRow.google_flow_prompt,
+              images: {
+                storyboard_url: validRow.storyboard_url,
+                cover_url: validRow.cover_url
+              }
+            };
+          }
         }
       } catch (e) {
         console.log('ตาราง generation_results ยังไม่ถูกสร้าง กำลังดึงจาก commands...');
@@ -1085,7 +1088,9 @@ document.addEventListener('DOMContentLoaded', () => {
           .order('created_at', { ascending: false });
 
         if (genData && genData.length > 0) {
+          const excludedIds = ['021c07c5-e340-4516-b93a-9ded0d1c3278', '9dc163a8-744d-4e7c-9ca1-5246e8b271b1', '5258062e-eba4-4dc3-869f-b971cd3438da'];
           genData.forEach(row => {
+            if (excludedIds.includes(row.id)) return; // ข้ามรายการเก่าที่ติดภาพต้นฉบับ
             allItems.push({
               id: row.id,
               title: row.title || 'ชุดคอนเทนต์รีวิวสินค้า',
