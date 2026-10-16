@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="VisionPrompt Studio - หน้าเว็บรับคำสั่งและอัปโหลดรูปภาพ ดีไซน์พรีเมียม สไตล์ Glassmorphism สำหรับรันบนเครื่อง Local">
+  <title>VisionPrompt • Local Command & Vision Studio</title>
+  
+  <!-- Google Fonts: Plus Jakarta Sans & Noto Sans Thai -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Ambient Background Glows -->
+  <div class="ambient-glow glow-top-left" aria-hidden="true"></div>
+  <div class="ambient-glow glow-bottom-right" aria-hidden="true"></div>
+  <div class="grid-overlay" aria-hidden="true"></div>
+
+  <!-- Main Container -->
+  <div class="app-wrapper">
+    <!-- Header / Navbar -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>VisionPrompt <span class="badge-tag">STUDIO</span></h1>
+          <p class="brand-sub">Local AI Command Gateway</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button type="button" class="btn-vault" id="btnOpenVault" title="เปิดคลังเก็บของและประวัติการเจ็น">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>
+          <span>คลังเก็บของ</span>
+          <span class="vault-count-badge" id="vaultCountBadge">0</span>
+        </button>
+        <div class="status-indicator" id="localStatus">
+          <span class="status-dot"></span>
+          <span class="status-label">Localhost : Active</span>
+        </div>
+        <button type="button" class="btn-icon" id="btnThemeToggle" title="สลับโหมดแสง" aria-label="Toggle Theme">
+          <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Title & Headline -->
+      <section class="hero-section">
+        <div class="hero-pill">
+          <span class="sparkle-icon">✨</span> อัปโหลดภาพ & ออกคำสั่งประมวลผล
+        </div>
+        <h2 class="hero-title">สั่งการและส่งภาพเข้าสู่ระบบ AI</h2>
+        <p class="hero-description">ลากภาพมาวาง วางจากคลิปบอร์ด (<kbd>Ctrl+V</kbd>) แล้วพิมพ์คำสั่งที่ต้องการให้ AI วิเคราะห์หรือจัดการได้ทันที</p>
+      </section>
+
+      <!-- Command Center Card -->
+      <section class="command-card glass-panel" id="commandPanel">
+        <!-- Section 1: Upload Area -->
+        <div class="card-section">
+          <div class="section-label-row">
+            <span class="section-badge">01</span>
+            <label class="section-title">อัปโหลดรูปภาพประกอบคำสั่ง</label>
+            <span class="section-hint">(รองรับ PNG, JPG, WebP, GIF หรือกด Ctrl+V)</span>
+          </div>
+
+          <!-- Drag and Drop Box -->
+          <div class="dropzone" id="dropZone" tabindex="0" role="button" aria-label="พื้นที่สำหรับอัปโหลดรูปภาพ">
+            <input type="file" id="fileInput" accept="image/*" class="file-input-hidden" aria-hidden="true" multiple>
+            
+            <!-- Empty State -->
+            <div class="dropzone-empty" id="dropzoneEmpty">
+              <div class="upload-icon-bubble">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+              </div>
+              <p class="upload-primary-text">
+                <strong>คลิกเพื่อเลือกภาพ (เลือกได้หลายภาพ)</strong> หรือลากไฟล์มาวางตรงนี้
+              </p>
+              <p class="upload-sub-text">รองรับการเลือกทีละหลายรูปพร้อมกัน หรือแคปเจอร์แล้วกด <kbd>Ctrl</kbd> + <kbd>V</kbd> เพื่อวางเพิ่มได้เรื่อยๆ</p>
+            </div>
+
+            <!-- Preview State: Multi-image Gallery (Hidden by default) -->
+            <div class="dropzone-preview" id="dropzonePreview" style="display: none;">
+              <div class="gallery-toolbar">
+                <div class="gallery-stats">
+                  <span class="gallery-count-badge" id="galleryCountBadge">0 รูปภาพ</span>
+                  <span class="gallery-size-badge" id="galleryTotalSize">0 KB</span>
+                </div>
+                <div class="gallery-actions">
+                  <button type="button" class="btn-gallery-action" id="btnAddMoreImages">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    เพิ่มรูปอีก
+                  </button>
+                  <button type="button" class="btn-gallery-action btn-danger-action" id="btnClearAllImages">
+                    ล้างรูปทั้งหมด
+                  </button>
+                </div>
+              </div>
+              <div class="image-gallery-grid" id="imageGalleryGrid">
+                <!-- Dynamic cards populated by JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Command & Prompt Input -->
+        <div class="card-section">
+          <div class="section-label-row">
+            <span class="section-badge">02</span>
+            <label for="promptInput" class="section-title">คำสั่งและสิ่งที่ต้องการให้ทำ</label>
+            <div class="char-counter" id="charCounter">0 / 2,000</div>
+          </div>
+
+          <!-- Quick Suggestion Chips -->
+          <div class="suggestion-chips" id="suggestionChips">
+            <span class="chips-label">ตัวอย่างคำสั่ง:</span>
+            <button type="button" class="chip-btn" data-prompt="ช่วยวิเคราะห์และอธิบายองค์ประกอบของภาพนี้แบบละเอียด">🔍 วิเคราะห์รายละเอียดภาพ</button>
+            <button type="button" class="chip-btn" data-prompt="ดึงข้อความทั้งหมดที่ปรากฏในภาพนี้ออกมา (OCR) ให้ครบถ้วน">📄 ดึงข้อความจากภาพ (OCR)</button>
+            <button type="button" class="chip-btn" data-prompt="แปลงดีไซน์ในภาพนี้ให้กลายเป็นโครงสร้าง HTML และ CSS แบบโมเดิร์น">🎨 แปลงภาพเป็นโค้ด UI</button>
+            <button type="button" class="chip-btn" data-prompt="ช่วยตรวจสอบว่ามีจุดผิดปกติหรือสิ่งที่ต้องปรับปรุงในภาพนี้หรือไม่">🛠️ ตรวจสอบหาข้อผิดพลาด</button>
+          </div>
+
+          <!-- Textarea Area -->
+          <div class="textarea-container">
+            <textarea 
+              id="promptInput" 
+              rows="4" 
+              maxlength="2000"
+              placeholder="พิมพ์คำสั่งหรือระบุสิ่งที่ต้องการให้ทำกับรูปภาพนี้... (กด Ctrl + Enter เพื่อส่งคำสั่งได้ทันที)"></textarea>
+            
+            <div class="textarea-footer">
+              <span class="shortcut-tip"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> เพื่อส่งคำสั่ง</span>
+              <button type="button" class="btn-ghost" id="btnClearPrompt" style="display: none;">ล้างข้อความ</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Action Buttons -->
+        <div class="action-footer">
+          <div class="footer-left">
+            <div class="pill-info" id="payloadSummary">
+              <span class="pill-icon">ℹ️</span>
+              <span id="summaryText">ยังไม่ได้เลือกรูปภาพ</span>
+            </div>
+          </div>
+
+          <div class="footer-right">
+            <button type="button" class="btn-secondary" id="btnResetAll">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+              รีเซ็ตทั้งหมด
+            </button>
+            <button type="button" class="btn-primary" id="btnSubmitCommand">
+              <span class="btn-spinner" id="btnSpinner" style="display: none;"></span>
+              <span class="btn-icon-wrapper" id="btnIcon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              </span>
+              <span id="btnText">ส่งคำสั่งประมวลผล</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Execution Result / Response Feed (Dynamic) -->
+      <section class="results-section" id="resultsSection" style="display: none;">
+        <div class="results-header">
+          <div class="results-title-group">
+            <span class="live-dot"></span>
+            <h3>✨ ผลลัพธ์ชุดคอนเทนต์จาก AI (AI Generation Result)</h3>
+          </div>
+          <div class="results-header-actions">
+            <span class="timestamp-tag" id="resultTimestamp">เพิ่งส่งไป</span>
+            <button type="button" class="btn-refresh-res" id="btnRefreshResult" title="รีเฟรชข้อมูลจาก Supabase">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+              รีเฟรชผลลัพธ์
+            </button>
+            <button type="button" class="btn-hide-res" id="btnHideResult" title="ซ่อนหน้าต่างผลลัพธ์นี้">
+              ✕ ซ่อนผลลัพธ์
+            </button>
+          </div>
+        </div>
+
+        <!-- AI Delivered Result Card -->
+        <div class="result-card glass-panel" id="aiResultCard">
+          <!-- Status Banner -->
+          <div class="ai-status-banner">
+            <div class="status-left">
+              <span class="status-badge-done">COMPLETED</span>
+              <span class="status-text-done">AI ประมวลผลและสร้างชุดคอนเทนต์ครบ 3 อย่างเรียบร้อย</span>
+            </div>
+            <span class="record-id-tag" id="displayRecordId">ID: Loading...</span>
+          </div>
+
+          <!-- Section 1: Generated Images Grid -->
+          <div class="ai-content-block">
+            <h4 class="block-title">
+              <span class="icon">🖼️</span> 1. รูปภาพที่สร้างขึ้นโดย AI (2 ภาพ)
+            </h4>
+            <div class="generated-images-grid">
+              <!-- Storyboard 6 Scenes -->
+              <div class="generated-img-card">
+                <div class="img-preview-box">
+                  <img id="aiImgStoryboard" src="" alt="ภาพสตอรีบอร์ดรีวิวสินค้า 6 ซีน">
+                  <div class="img-badge-overlay">สตอรีบอร์ด 6 ซีน (3:2)</div>
+                </div>
+                <div class="img-card-footer">
+                  <div class="img-card-info">
+                    <strong>ภาพสตอรีบอร์ดรวม 6 ซีน</strong>
+                    <span>เรียงลำดับการรีวิวสินค้า 6 ช่อง</span>
+                  </div>
+                  <button type="button" id="btnDownloadStoryboard" class="btn-img-action">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    ดาวน์โหลดภาพ (.jpg)
+                  </button>
+                </div>
+              </div>
+
+              <!-- TikTok Cover 9:16 -->
+              <div class="generated-img-card">
+                <div class="img-preview-box vertical-box">
+                  <img id="aiImgCover" src="" alt="ภาพปกคลิป TikTok 9:16">
+                  <div class="img-badge-overlay">ปก TikTok (9:16)</div>
+                </div>
+                <div class="img-card-footer">
+                  <div class="img-card-info">
+                    <strong>ภาพปกคลิป TikTok</strong>
+                    <span>อัตราส่วนแนวตั้ง 9:16</span>
+                  </div>
+                  <button type="button" id="btnDownloadCover" class="btn-img-action">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    ดาวน์โหลดภาพ (.jpg)
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Section 2: Thai Content (Title, Caption, Hashtags) -->
+          <div class="ai-content-block">
+            <div class="block-header-row">
+              <h4 class="block-title">
+                <span class="icon">✍️</span> 2. ชุดข้อความภาษาไทยสำหรับ TikTok (ปักตะกร้า)
+              </h4>
+              <button type="button" class="btn-copy-section" id="btnCopyThaiContent">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                คัดลอกข้อความภาษาไทย
+              </button>
+            </div>
+
+            <div class="thai-content-box">
+              <div class="content-field">
+                <label class="field-label">🏷️ ชื่อสินค้า:</label>
+                <div class="field-value highlight" id="aiProductTitle">-</div>
+              </div>
+
+              <div class="content-field">
+                <label class="field-label">📝 คำอธิบายคลิป TikTok (พร้อม Call to Action):</label>
+                <div class="field-value" id="aiCaption">-</div>
+              </div>
+
+              <div class="content-field">
+                <label class="field-label">#️⃣ แฮชแท็ก:</label>
+                <div class="field-value hashtags" id="aiHashtags">-</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Section 3: Google Flow English Prompt -->
+          <div class="ai-content-block">
+            <div class="block-header-row">
+              <h4 class="block-title">
+                <span class="icon">🎬</span> 3. พรอมป์ต์ภาษาอังกฤษสำหรับ Google Flow (6 ซีน)
+              </h4>
+              <button type="button" class="btn-copy-section" id="btnCopyGoogleFlow">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                คัดลอกพรอมป์ต์ Google Flow
+              </button>
+            </div>
+
+            <div class="code-box">
+              <pre><code id="aiGoogleFlowPrompt">-</code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>VisionPrompt Local Gateway • ทำงานเฉพาะบนเครื่องคอมพิวเตอร์ของคุณเท่านั้น (100% Offline / Local Ready)</p>
+    </footer>
+  </div>
+
+  <!-- Content Vault Drawer (คลังเก็บของ / ประวัติการเจ็น) -->
+  <div class="vault-backdrop" id="vaultModal" style="display: none;" role="dialog" aria-modal="true" aria-label="คลังเก็บของและประวัติคอนเทนต์">
+    <div class="vault-drawer glass-panel">
+      <div class="vault-header">
+        <div class="vault-title-group">
+          <div class="vault-icon-bubble">📦</div>
+          <div>
+            <h3>คลังเก็บของ (Content Vault)</h3>
+            <p class="vault-subtitle">ประวัติชุดคอนเทนต์และภาพทั้งหมดที่ AI เคยสร้างไว้</p>
+          </div>
+        </div>
+        <div class="vault-header-actions">
+          <button type="button" class="btn-refresh-vault" id="btnRefreshVault" title="รีเฟรชประวัติ">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            <span>รีเฟรช</span>
+          </button>
+          <button type="button" class="btn-vault-close" id="btnCloseVault" aria-label="ปิดคลังเก็บของ">✕</button>
+        </div>
+      </div>
+
+      <div class="vault-body">
+        <div class="vault-loading" id="vaultLoading" style="display: none;">
+          <div class="btn-spinner"></div>
+          <span>กำลังโหลดประวัติคอนเทนต์จาก Supabase...</span>
+        </div>
+
+        <div class="vault-empty" id="vaultEmpty" style="display: none;">
+          <div class="vault-empty-icon">📂</div>
+          <h4>ยังไม่มีประวัติการสร้างคอนเทนต์</h4>
+          <p>เมื่อคุณส่งคำสั่งและ AI สร้างผลงานเสร็จแล้ว ผลงานทั้งหมดจะถูกจัดเก็บไว้ที่นี่โดยอัตโนมัติ</p>
+        </div>
+
+        <div class="vault-list" id="vaultList">
+          <!-- Dynamic Vault Items Loaded from Supabase -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dedicated Product Content Detail Modal (แยกเป็นหน้าต่างเฉพาะ ไม่ปนกับหน้าสั่งการ) -->
+  <div class="vault-detail-modal-backdrop" id="vaultDetailModal" style="display: none;" role="dialog" aria-modal="true" aria-label="รายละเอียดชุดคอนเทนต์">
+    <div class="vault-detail-container glass-panel">
+      <!-- Modal Header -->
+      <div class="vault-detail-header">
+        <div class="vault-detail-header-left">
+          <button type="button" class="btn-back-to-vault" id="btnBackToVault">
+            ← กลับไปคลังเก็บของ
+          </button>
+          <span class="detail-badge-status">AI COMPLETED</span>
+        </div>
+        <div class="vault-detail-header-right">
+          <button type="button" class="btn-close-detail" id="btnCloseDetail" aria-label="ปิดหน้าต่าง">✕</button>
+        </div>
+      </div>
+
+      <!-- Title & Meta Banner -->
+      <div class="vault-detail-title-banner">
+        <h2 class="vault-detail-product-title" id="vaultDetailTitle">ชื่อสินค้า</h2>
+        <div class="vault-detail-meta">
+          <span class="meta-tag" id="vaultDetailId">ID: ...</span>
+          <span class="meta-dot">•</span>
+          <span class="meta-date" id="vaultDetailDate">วันที่สร้าง: ...</span>
+        </div>
+      </div>
+
+      <!-- Modal Body (Scrollable) -->
+      <div class="vault-detail-body">
+        <!-- 1. Generated Images Block -->
+        <div class="ai-content-block">
+          <h4 class="block-title">
+            <span class="icon">🖼️</span> 1. รูปภาพที่สร้างขึ้นโดย AI (2 ภาพ)
+          </h4>
+          <div class="generated-images-grid">
+            <!-- Storyboard 6 Scenes -->
+            <div class="generated-img-card">
+              <div class="img-preview-box">
+                <img id="detailImgStoryboard" src="" alt="ภาพสตอรีบอร์ด">
+                <div class="img-badge-overlay">สตอรีบอร์ด 6 ซีน (3:2)</div>
+              </div>
+              <div class="img-card-footer">
+                <div class="img-card-info">
+                  <strong>ภาพสตอรีบอร์ดรวม 6 ซีน</strong>
+                  <span>เรียงลำดับการรีวิวสินค้า 6 ช่อง</span>
+                </div>
+                <button type="button" id="btnDetailDownloadStoryboard" class="btn-img-action">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  ดาวน์โหลดภาพ (.jpg)
+                </button>
+              </div>
+            </div>
+
+            <!-- TikTok Cover 9:16 -->
+            <div class="generated-img-card">
+              <div class="img-preview-box vertical-box">
+                <img id="detailImgCover" src="" alt="ภาพปก TikTok">
+                <div class="img-badge-overlay">ปก TikTok (9:16)</div>
+              </div>
+              <div class="img-card-footer">
+                <div class="img-card-info">
+                  <strong>ภาพปกคลิป TikTok</strong>
+                  <span>อัตราส่วนแนวตั้ง 9:16</span>
+                </div>
+                <button type="button" id="btnDetailDownloadCover" class="btn-img-action">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  ดาวน์โหลดภาพ (.jpg)
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- 2. Thai Marketing Content -->
+        <div class="ai-content-block">
+          <div class="block-header-row">
+            <h4 class="block-title">
+              <span class="icon">✍️</span> 2. ชุดข้อความภาษาไทยสำหรับ TikTok (ปักตะกร้า)
+            </h4>
+            <button type="button" class="btn-copy-section" id="btnDetailCopyThai">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              คัดลอกข้อความภาษาไทย
+            </button>
+          </div>
+          <div class="thai-content-box">
+            <div class="content-field">
+              <label class="field-label">🏷️ ชื่อสินค้า:</label>
+              <div class="field-value highlight" id="detailProductTitleText">-</div>
+            </div>
+            <div class="content-field">
+              <label class="field-label">📝 คำอธิบายคลิป TikTok (พร้อม Call to Action):</label>
+              <div class="field-value" id="detailCaption">-</div>
+            </div>
+            <div class="content-field">
+              <label class="field-label">#️⃣ แฮชแท็ก:</label>
+              <div class="field-value hashtags" id="detailHashtags">-</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- 3. Google Flow Prompt -->
+        <div class="ai-content-block">
+          <div class="block-header-row">
+            <h4 class="block-title">
+              <span class="icon">🎬</span> 3. พรอมป์ต์ภาษาอังกฤษสำหรับ Google Flow (6 ซีน)
+            </h4>
+            <button type="button" class="btn-copy-section" id="btnDetailCopyPrompt">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              คัดลอกพรอมป์ต์ Google Flow
+            </button>
+          </div>
+          <div class="code-box">
+            <pre><code id="detailGoogleFlowPrompt">-</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Real-time AI Generation Loading Modal with Progress Bar -->
+  <div class="generation-loading-overlay" id="generationLoadingOverlay" style="display: none;" role="dialog" aria-modal="true" aria-label="สถานะการประมวลผล AI แบบเรียลไทม์">
+    <div class="generation-loading-card">
+      <div class="loading-scanner-line"></div>
+      
+      <!-- Card Header -->
+      <div class="loading-header">
+        <div class="loading-badge">
+          <span class="loading-pulse-dot"></span>
+          <span>REAL-TIME AI PIPELINE</span>
+        </div>
+        <button type="button" class="btn-minimize-loading" id="btnMinimizeLoading" title="ย่อหน้าต่างทำงานในเบื้องหลัง">─</button>
+      </div>
+
+      <!-- Icon & Main Title -->
+      <div class="loading-hero">
+        <div class="loading-cyber-orb">
+          <div class="orb-ring-outer"></div>
+          <div class="orb-ring-inner"></div>
+          <div class="orb-icon">✨</div>
+        </div>
+        <h3 class="loading-title">กำลังสร้างชุดคอนเทนต์ด้วย AI</h3>
+        <p class="loading-subtitle" id="loadingStatusText">กำลังเริ่มต้นเชื่อมต่อและส่งรูปภาพขึ้นคลาวด์...</p>
+      </div>
+
+      <!-- Progress Section -->
+      <div class="loading-progress-box">
+        <div class="progress-info-row">
+          <span class="progress-label" id="progressStepName">อัปโหลดรูปภาพอ้างอิง</span>
+          <span class="progress-percent" id="loadingPercent">0%</span>
+        </div>
+        
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" id="progressBarFill" style="width: 0%;">
+            <div class="progress-bar-glow"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pipeline Steps Indicator -->
+      <div class="pipeline-steps">
+        <div class="pipe-step active" id="stepUpload">
+          <div class="step-dot"></div>
+          <span>1. อัปโหลดรูป</span>
+        </div>
+        <div class="pipe-line" id="line1"></div>
+        <div class="pipe-step" id="stepQueue">
+          <div class="step-dot"></div>
+          <span>2. ส่งเข้าคิว</span>
+        </div>
+        <div class="pipe-line" id="line2"></div>
+        <div class="pipe-step" id="stepStoryboard">
+          <div class="step-dot"></div>
+          <span>3. สตอรีบอร์ด 6 ซีน</span>
+        </div>
+        <div class="pipe-line" id="line3"></div>
+        <div class="pipe-step" id="stepCover">
+          <div class="step-dot"></div>
+          <span>4. ปก TikTok & พรอมป์ต์</span>
+        </div>
+      </div>
+
+      <div class="loading-footer-tip">
+        <span class="tip-icon">💡</span>
+        <span>ระบบกำลังประมวลผลแบบเรียลไทม์ เมื่อเสร็จสิ้นผลลัพธ์จะปรากฏขึ้นบนหน้าจอทันที</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Mini Progress Widget (When Minimized) -->
+  <div class="floating-progress-widget" id="floatingProgressWidget" style="display: none;">
+    <div class="floating-spinner"></div>
+    <div class="floating-info">
+      <span class="floating-title">AI กำลังทำงาน...</span>
+      <span class="floating-percent" id="floatingPercentText">0%</span>
+    </div>
+    <button type="button" class="btn-restore-loading" id="btnRestoreLoading" title="ขยายดูหน้าจอเต็ม">⤢</button>
+  </div>
+
+  <!-- Image Lightbox Modal -->
+  <div class="modal-backdrop" id="imageModal" style="display: none;" role="dialog" aria-modal="true" aria-label="ขยายดูภาพ">
+    <div class="modal-content">
+      <button type="button" class="modal-close" id="btnModalClose" aria-label="ปิดหน้าต่าง">✕</button>
+      <img id="modalImg" src="" alt="ภาพขนาดเต็ม">
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <!-- Supabase JS Client & Config -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
