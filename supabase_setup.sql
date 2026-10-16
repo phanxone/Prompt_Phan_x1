@@ -17,6 +17,7 @@ ALTER TABLE public.commands ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow public insert to commands" ON public.commands FOR INSERT TO public WITH CHECK (true);
 CREATE POLICY "Allow public read commands" ON public.commands FOR SELECT TO public USING (true);
 CREATE POLICY "Allow public update commands" ON public.commands FOR UPDATE TO public USING (true);
+CREATE POLICY "Allow public delete commands" ON public.commands FOR DELETE TO public USING (true);
 
 -- ==============================================================================
 -- 2. ตารางใหม่: generation_results (เก็บผลลัพธ์ที่ AI เจนเสร็จแล้วโดยเฉพาะ)
@@ -36,6 +37,8 @@ CREATE TABLE IF NOT EXISTS public.generation_results (
 ALTER TABLE public.generation_results ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow public insert to generation_results" ON public.generation_results FOR INSERT TO public WITH CHECK (true);
 CREATE POLICY "Allow public read generation_results" ON public.generation_results FOR SELECT TO public USING (true);
+CREATE POLICY "Allow public update generation_results" ON public.generation_results FOR UPDATE TO public USING (true);
+CREATE POLICY "Allow public delete generation_results" ON public.generation_results FOR DELETE TO public USING (true);
 
 -- ==============================================================================
 -- 3. Storage Bucket

@@ -415,32 +415,73 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // --- Default TikTok Affiliate Prompt ---
+  const DEFAULT_AFFILIATE_PROMPT = `ช่วยสร้างชุดคอนเทนต์รีวิวสินค้าด้วย AI สำหรับวิดีโอ TikTok แบบปักตะกร้า โดยใช้รูปสินค้าที่ฉันแนบเป็นภาพอ้างอิง และจัดทำตามรายละเอียดต่อไปนี้
+
+1. ภาพสตอรีบอร์ดรีวิวสินค้า 6 ซีน
+- สร้างภาพ 1 รูป แบ่งเป็น 6 ช่อง เรียงตามลำดับซีน เพื่อเล่าเรื่องการรีวิวสินค้าตั้งแต่เริ่มจนจบ
+- เน้นการถ่ายสินค้า การสาธิตใช้งาน และรายละเอียดที่น่าสนใจ
+- ไม่ต้องมีข้อความ คำบรรยาย หรือหมายเลขซีนบนภาพ
+- ไม่เห็นใบหน้าผู้ถ่ายหรือผู้สาธิต สามารถเห็นเฉพาะมือได้
+- รูปลักษณ์ สี รูปทรง โลโก้ และรายละเอียดของสินค้าต้องตรงกับภาพอ้างอิงทุกซีน
+
+2. พรอมป์ต์ภาษาอังกฤษสำหรับ Google Flow
+- เขียนพรอมป์ต์ 1 ชุด ครอบคลุมทั้ง 6 ซีน โดยใช้ภาษาอังกฤษเท่านั้น
+- ระบุภาพในแต่ละซีน การเคลื่อนไหวของกล้อง การสาธิตสินค้า และเสียงเอฟเฟกต์ให้ชัดเจน
+- ใช้สไตล์รีวิวสินค้าจริง ดูเป็นธรรมชาติ เน้นตัวสินค้าและการใช้งาน
+- ไม่มีเสียงพากย์ ไม่มีบทพูด และไม่มีเพลงประกอบ ใช้เฉพาะเสียงเอฟเฟกต์ที่สัมพันธ์กับภาพ
+- ไม่เห็นใบหน้าบุคคล สามารถเห็นเฉพาะมือขณะหยิบจับหรือสาธิตสินค้าได้
+- ไม่มีข้อความหรือคำบรรยายเพิ่มเติมบนวิดีโอ
+- สินค้าต้องตรงกับภาพอ้างอิงตลอดทั้งวิดีโอ ห้ามเปลี่ยนรูปลักษณ์หรือเพิ่มคุณสมบัติที่ไม่มีข้อมูลรองรับ
+- จัดองค์ประกอบสำหรับวิดีโอแนวตั้ง อัตราส่วน 9:16
+
+3. ชื่อสินค้า คำอธิบาย แฮชแท็ก และปกคลิป
+- ตั้งชื่อสินค้าเป็นภาษาไทยให้กระชับ น่าสนใจ และตรงกับสินค้าจริง
+- เขียนคำอธิบายสำหรับโพสต์ TikTok พร้อมคำเชิญชวนให้กดดูสินค้าที่ตะกร้า โดยไม่กล่าวอ้างเกินจริง
+- ใส่แฮชแท็กที่เกี่ยวข้องกับสินค้าและการใช้งาน
+- สร้างภาพปกคลิป 1 รูป อัตราส่วน 9:16 ให้สินค้าโดดเด่น พร้อมข้อความภาษาไทยสั้น ๆ ที่อ่านง่ายและสะกดถูกต้อง
+
+ผลลัพธ์ที่ต้องการ:
+- ภาพ 2 รูป ได้แก่ ภาพสตอรีบอร์ดรวม 6 ซีน และภาพปกคลิป
+- พรอมป์ต์ภาษาอังกฤษสำหรับ Google Flow จำนวน 1 ชุด
+- ข้อความภาษาไทย ได้แก่ ชื่อสินค้า คำอธิบาย และแฮชแท็ก`;
+
+  // Pre-fill promptInput with default prompt
+  if (promptInput && !promptInput.value.trim()) {
+    promptInput.value = DEFAULT_AFFILIATE_PROMPT;
+  }
+  if (promptInput) {
+    const initLen = promptInput.value.length;
+    if (charCounter) charCounter.textContent = `${initLen.toLocaleString()} / 4,000`;
+    if (btnClearPrompt) btnClearPrompt.style.display = initLen > 0 ? 'inline-block' : 'none';
+  }
+
   // --- Prompt Input & Char Counter ---
   promptInput.addEventListener('input', () => {
     const count = promptInput.value.length;
-    charCounter.textContent = `${count.toLocaleString()} / 2,000`;
+    charCounter.textContent = `${count.toLocaleString()} / 4,000`;
     btnClearPrompt.style.display = count > 0 ? 'inline-block' : 'none';
     updatePayloadSummary();
   });
 
   btnClearPrompt.addEventListener('click', () => {
     promptInput.value = '';
-    charCounter.textContent = '0 / 2,000';
+    charCounter.textContent = '0 / 4,000';
     btnClearPrompt.style.display = 'none';
     promptInput.focus();
     updatePayloadSummary();
   });
 
   // --- Suggestion Chips ---
-  suggestionChips.addEventListener('click', (e) => {
-    const chip = e.target.closest('.chip-btn');
-    if (!chip) return;
-    const text = chip.getAttribute('data-prompt');
-    promptInput.value = text;
-    promptInput.dispatchEvent(new Event('input'));
-    promptInput.focus();
-    showToast('แทรกคำสั่งตัวอย่างแล้ว');
-  });
+  const btnDefaultPromptChip = document.getElementById('btnDefaultPromptChip');
+  if (btnDefaultPromptChip) {
+    btnDefaultPromptChip.addEventListener('click', () => {
+      promptInput.value = DEFAULT_AFFILIATE_PROMPT;
+      promptInput.dispatchEvent(new Event('input'));
+      promptInput.focus();
+      showToast('ใส่ชุดคำสั่งรีวิว TikTok ปักตะกร้าเรียบร้อย!');
+    });
+  }
 
   // --- Payload Summary Updater ---
   function updatePayloadSummary() {
@@ -471,12 +512,12 @@ document.addEventListener('DOMContentLoaded', () => {
     selectedFiles = [];
     fileInput.value = '';
     renderGallery();
-    promptInput.value = '';
-    charCounter.textContent = '0 / 2,000';
-    btnClearPrompt.style.display = 'none';
+    promptInput.value = DEFAULT_AFFILIATE_PROMPT;
+    charCounter.textContent = `${DEFAULT_AFFILIATE_PROMPT.length.toLocaleString()} / 4,000`;
+    btnClearPrompt.style.display = 'inline-block';
     resultsSection.style.display = 'none';
     updatePayloadSummary();
-    showToast('รีเซ็ตแบบฟอร์มทั้งหมดเรียบร้อย');
+    showToast('รีเซ็ตแบบฟอร์มเป็นค่าเริ่มต้นเรียบร้อย');
   });
 
   // --- Submit Command: Upload to Supabase Storage & Insert Table ---
@@ -921,6 +962,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const vaultDetailModal = document.getElementById('vaultDetailModal');
   const btnBackToVault = document.getElementById('btnBackToVault');
   const btnCloseDetail = document.getElementById('btnCloseDetail');
+  const btnDetailDelete = document.getElementById('btnDetailDelete');
   const vaultDetailTitle = document.getElementById('vaultDetailTitle');
   const vaultDetailId = document.getElementById('vaultDetailId');
   const vaultDetailDate = document.getElementById('vaultDetailDate');
@@ -934,6 +976,75 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnDetailCopyThai = document.getElementById('btnDetailCopyThai');
   const detailGoogleFlowPrompt = document.getElementById('detailGoogleFlowPrompt');
   const btnDetailCopyPrompt = document.getElementById('btnDetailCopyPrompt');
+  let currentDetailItem = null;
+
+  // Local Persistent Deletion Helper
+  function getDeletedVaultIds() {
+    try {
+      const stored = localStorage.getItem('uplord_deleted_vault_ids');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function addDeletedVaultId(id) {
+    if (!id) return;
+    try {
+      const list = getDeletedVaultIds();
+      if (!list.includes(id)) {
+        list.push(id);
+        localStorage.setItem('uplord_deleted_vault_ids', JSON.stringify(list));
+      }
+    } catch (e) {
+      console.error('Error saving deleted id:', e);
+    }
+  }
+
+  async function deleteVaultItem(item, cardEl) {
+    if (!item || !item.id) return;
+
+    const confirmDelete = confirm(`คุณต้องการลบ "${item.title || 'ผลงานนี้'}" ออกจากคลังเก็บของใช่หรือไม่?`);
+    if (!confirmDelete) return;
+
+    // 1. จำการลบไว้ใน LocalStorage ทันที
+    addDeletedVaultId(item.id);
+
+    // 2. ลบการ์ดออกจากหน้าจอทันทีแบบแอนิเมชันนุ่มนวล
+    if (cardEl) {
+      cardEl.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+      cardEl.style.opacity = '0';
+      cardEl.style.transform = 'scale(0.92)';
+      setTimeout(() => {
+        cardEl.remove();
+        if (vaultList && vaultList.children.length === 0) {
+          vaultEmpty.style.display = 'block';
+        }
+      }, 300);
+    }
+
+    // 3. ถ้าเปิดหน้าต่าง Detail Modal ของไอเทมนี้อยู่ ให้ปิดแล้วเปิดคลังที่อัปเดตแล้ว
+    if (currentDetailItem && currentDetailItem.id === item.id) {
+      closeVaultDetailModal();
+      openVault();
+    }
+
+    // 4. อัปเดตตัวเลข badge
+    setTimeout(updateVaultCountBadge, 350);
+    showToast('ลบผลงานออกจากคลังเรียบร้อยแล้ว', 'info');
+
+    // 5. ส่งคำสั่งลบไปยังฐานข้อมูล Supabase ด้วย (ถ้ามีสิทธิ์)
+    try {
+      if (supabase) {
+        await supabase.from('generation_results').delete().eq('id', item.id);
+        if (item.command_id) {
+          await supabase.from('commands').delete().eq('id', item.command_id);
+        }
+      }
+    } catch (err) {
+      console.log('Server deletion notice:', err);
+    }
+  }
 
   function openVault() {
     vaultModal.style.display = 'flex';
@@ -946,6 +1057,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function openVaultDetailModal(item) {
     if (!vaultDetailModal) return;
+    currentDetailItem = item;
 
     // ซ่อน Vault Drawer ชั่วคราวเพื่อให้ดูรายละเอียดได้เต็มตา
     closeVault();
@@ -968,6 +1080,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function closeVaultDetailModal() {
     if (vaultDetailModal) vaultDetailModal.style.display = 'none';
+    currentDetailItem = null;
+  }
+
+  if (btnDetailDelete) {
+    btnDetailDelete.addEventListener('click', () => {
+      if (currentDetailItem) {
+        deleteVaultItem(currentDetailItem);
+      }
+    });
   }
 
   if (btnBackToVault) {
@@ -1081,6 +1202,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       // 1. ดึงจากตาราง generation_results
+      const deletedIds = getDeletedVaultIds();
+      const excludedIds = ['021c07c5-e340-4516-b93a-9ded0d1c3278', '9dc163a8-744d-4e7c-9ca1-5246e8b271b1', '5258062e-eba4-4dc3-869f-b971cd3438da', ...deletedIds];
+
       try {
         const { data: genData } = await supabase
           .from('generation_results')
@@ -1088,11 +1212,11 @@ document.addEventListener('DOMContentLoaded', () => {
           .order('created_at', { ascending: false });
 
         if (genData && genData.length > 0) {
-          const excludedIds = ['021c07c5-e340-4516-b93a-9ded0d1c3278', '9dc163a8-744d-4e7c-9ca1-5246e8b271b1', '5258062e-eba4-4dc3-869f-b971cd3438da'];
           genData.forEach(row => {
-            if (excludedIds.includes(row.id)) return; // ข้ามรายการเก่าที่ติดภาพต้นฉบับ
+            if (excludedIds.includes(row.id)) return; // ข้ามรายการเก่าหรือรายการที่ถูกลบ
             allItems.push({
               id: row.id,
+              command_id: row.command_id,
               title: row.title || 'ชุดคอนเทนต์รีวิวสินค้า',
               caption: row.caption || '',
               hashtags: row.hashtags || '',
@@ -1118,13 +1242,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (cmdData && cmdData.length > 0) {
           cmdData.forEach(row => {
+            if (excludedIds.includes(row.id)) return;
             const res = row.result_data;
             if (res && res.title) {
               // เช็คไม่ให้ซ้ำ ID
-              const exists = allItems.some(item => item.id === row.id);
+              const exists = allItems.some(item => item.id === row.id || item.command_id === row.id);
               if (!exists) {
                 allItems.push({
                   id: row.id,
+                  command_id: row.id,
                   title: res.title,
                   caption: res.caption || '',
                   hashtags: res.hashtags || '',
@@ -1176,10 +1302,25 @@ document.addEventListener('DOMContentLoaded', () => {
             <p class="vault-item-caption">${item.caption || item.hashtags || 'ไม่มีคำอธิบาย'}</p>
             <div class="vault-item-footer">
               <span class="vault-tag">AI Generated</span>
-              <button type="button" class="btn-open-record">เปิดดูผลงานนี้ →</button>
+              <div class="vault-item-actions">
+                <button type="button" class="btn-delete-record" title="ลบผลงานนี้ออกจากคลัง">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                  ลบ
+                </button>
+                <button type="button" class="btn-open-record">เปิดดูผลงานนี้ →</button>
+              </div>
             </div>
           </div>
         `;
+
+        // ปุ่มลบรายการ
+        const btnDelete = card.querySelector('.btn-delete-record');
+        if (btnDelete) {
+          btnDelete.addEventListener('click', (e) => {
+            e.stopPropagation();
+            deleteVaultItem(item, card);
+          });
+        }
 
         // เมื่อคลิกที่การ์ดในคลัง หรือปุ่ม 'เปิดดูผลงานนี้' -> เปิดหน้าต่างป๊อปอัปแยกเฉพาะทันที
         const btnOpen = card.querySelector('.btn-open-record');
@@ -1237,15 +1378,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!supabase) return;
     try {
       let count = 0;
-      try {
-        const { count: c1 } = await supabase.from('generation_results').select('*', { count: 'exact', head: true });
-        if (c1) count += c1;
-      } catch {}
+      const deletedIds = getDeletedVaultIds();
+      const excludedIds = ['021c07c5-e340-4516-b93a-9ded0d1c3278', '9dc163a8-744d-4e7c-9ca1-5246e8b271b1', '5258062e-eba4-4dc3-869f-b971cd3438da', ...deletedIds];
 
-      try {
-        const { count: c2 } = await supabase.from('commands').select('*', { count: 'exact', head: true }).eq('status', 'completed');
-        if (c2 && count === 0) count = c2;
-      } catch {}
+      const { data: gList } = await supabase.from('generation_results').select('id');
+      if (gList && gList.length > 0) {
+        count = gList.filter(r => !excludedIds.includes(r.id)).length;
+      }
 
       if (vaultCountBadge) {
         vaultCountBadge.textContent = count;
