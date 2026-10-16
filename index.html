@@ -11,9 +11,48 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="ref_image1.png">
+  
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- High-Tech Cyber Splash Screen (หน้าโหลดเข้าสู่ระบบ) -->
+  <div class="app-preloader" id="appPreloader" role="dialog" aria-modal="true" aria-label="กำลังเข้าสู่ระบบ">
+    <div class="preloader-content">
+      <!-- Cyber Neon Logo Core -->
+      <div class="preloader-logo-wrap">
+        <div class="preloader-ring-outer"></div>
+        <div class="preloader-ring-inner"></div>
+        <div class="preloader-core-icon">
+          <img src="ref_image1.png" alt="PHANX1 Logo" class="preloader-logo-img">
+        </div>
+      </div>
+
+      <!-- App Title & Tagline -->
+      <div class="preloader-text-group">
+        <h2 class="preloader-title">VisionPrompt <span class="preloader-badge">PHANX1</span></h2>
+        <p class="preloader-sub" id="preloaderStatusText">กำลังเตรียมพร้อมระบบ AI Gateway...</p>
+      </div>
+
+      <!-- Progress Track & Percentage -->
+      <div class="preloader-progress-box">
+        <div class="preloader-bar-track">
+          <div class="preloader-bar-fill" id="preloaderBarFill"></div>
+        </div>
+        <div class="preloader-meta-row">
+          <span class="preloader-step" id="preloaderStepText">INITIALIZING SYSTEM</span>
+          <span class="preloader-percent" id="preloaderPercent">0%</span>
+        </div>
+      </div>
+
+      <!-- Skip Button -->
+      <button type="button" class="btn-skip-preloader" id="btnSkipPreloader">
+        กดข้าม (Skip) ➔
+      </button>
+    </div>
+  </div>
+
   <!-- Ambient Background Glows -->
   <div class="ambient-glow glow-top-left" aria-hidden="true"></div>
   <div class="ambient-glow glow-bottom-right" aria-hidden="true"></div>
@@ -25,13 +64,11 @@
     <header class="app-header">
       <div class="brand">
         <div class="brand-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
-          </svg>
+          <img src="ref_image1.png" alt="PHANX1 Logo" class="brand-logo-img">
         </div>
         <div class="brand-text">
-          <h1>VisionPrompt <span class="badge-tag">STUDIO</span></h1>
-          <p class="brand-sub">Local AI Command Gateway</p>
+          <h1>VisionPrompt <span class="badge-tag">PHANX1</span></h1>
+          <p class="brand-sub">Local & Cloud AI Command Gateway</p>
         </div>
       </div>
 

@@ -14,6 +14,73 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // --- High-Tech Cyber Preloader Intro Animation ---
+  const appPreloader = document.getElementById('appPreloader');
+  const preloaderBarFill = document.getElementById('preloaderBarFill');
+  const preloaderPercent = document.getElementById('preloaderPercent');
+  const preloaderStepText = document.getElementById('preloaderStepText');
+  const preloaderStatusText = document.getElementById('preloaderStatusText');
+  const btnSkipPreloader = document.getElementById('btnSkipPreloader');
+
+  let preloaderFinished = false;
+
+  function finishPreloader() {
+    if (preloaderFinished || !appPreloader) return;
+    preloaderFinished = true;
+    if (preloaderBarFill) preloaderBarFill.style.width = '100%';
+    if (preloaderPercent) preloaderPercent.textContent = '100%';
+    if (preloaderStepText) preloaderStepText.textContent = 'SYSTEM ONLINE';
+    if (preloaderStatusText) preloaderStatusText.textContent = '⚡ เชื่อมต่อระบบ AI Gateway สำเร็จ ยินดีต้อนรับ!';
+
+    setTimeout(() => {
+      appPreloader.classList.add('preloader-hidden');
+      setTimeout(() => {
+        appPreloader.style.display = 'none';
+      }, 500);
+    }, 350);
+  }
+
+  if (appPreloader) {
+    if (btnSkipPreloader) {
+      btnSkipPreloader.addEventListener('click', finishPreloader);
+    }
+    appPreloader.addEventListener('click', (e) => {
+      if (e.target === appPreloader) finishPreloader();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' || e.key === 'Enter') finishPreloader();
+    }, { once: true });
+
+    let currentProgress = 0;
+    const preloaderInterval = setInterval(() => {
+      if (preloaderFinished) {
+        clearInterval(preloaderInterval);
+        return;
+      }
+      currentProgress += Math.floor(Math.random() * 14) + 8;
+      if (currentProgress > 98) currentProgress = 100;
+
+      if (preloaderBarFill) preloaderBarFill.style.width = `${currentProgress}%`;
+      if (preloaderPercent) preloaderPercent.textContent = `${currentProgress}%`;
+
+      if (currentProgress >= 20 && currentProgress < 50) {
+        if (preloaderStepText) preloaderStepText.textContent = 'INITIALIZING AI CORE';
+        if (preloaderStatusText) preloaderStatusText.textContent = 'กำลังโหลดโมเดลภาษาและการประมวลผลคำสั่ง...';
+      } else if (currentProgress >= 50 && currentProgress < 80) {
+        if (preloaderStepText) preloaderStepText.textContent = 'CONNECTING SUPABASE';
+        if (preloaderStatusText) preloaderStatusText.textContent = 'เชื่อมโยงฐานข้อมูล Cloud Storage & Commands...';
+      } else if (currentProgress >= 80 && currentProgress < 100) {
+        if (preloaderStepText) preloaderStepText.textContent = 'AI ENGINES READY';
+        if (preloaderStatusText) preloaderStatusText.textContent = 'ตรวจสอบ GPT-4o & DALL-E 3 พร้อมทำงาน...';
+      }
+
+      if (currentProgress >= 100) {
+        clearInterval(preloaderInterval);
+        finishPreloader();
+      }
+    }, 110);
+  }
+
   // --- DOM Elements ---
   const dropZone = document.getElementById('dropZone');
   const fileInput = document.getElementById('fileInput');
