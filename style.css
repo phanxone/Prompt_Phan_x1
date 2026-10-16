@@ -1789,28 +1789,53 @@ pre {
   display: flex;
   align-items: center;
   gap: 8px;
+  position: relative;
+  z-index: 5;
 }
 
 .btn-delete-record {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: rgba(225, 29, 72, 0.1);
-  border: 1px solid rgba(225, 29, 72, 0.3);
+  background: rgba(225, 29, 72, 0.12);
+  border: 1px solid rgba(225, 29, 72, 0.35);
   color: #fda4af;
   font-size: 0.74rem;
   font-weight: 600;
-  padding: 4px 9px;
+  padding: 5px 10px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all var(--transition-fast);
+  position: relative;
+  z-index: 6;
+  user-select: none;
+}
+
+.btn-delete-record * {
+  pointer-events: none;
 }
 
 .btn-delete-record:hover {
-  background: rgba(225, 29, 72, 0.25);
+  background: rgba(225, 29, 72, 0.28);
   border-color: #f43f5e;
   color: #ffffff;
   transform: translateY(-1px);
+}
+
+/* Two-step inline confirmation state */
+.btn-delete-record.btn-confirming,
+.btn-detail-delete.btn-confirming {
+  background: #e11d48 !important;
+  border-color: #f43f5e !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 0 14px rgba(225, 29, 72, 0.6) !important;
+  animation: pulseDelete 0.7s infinite alternate ease-in-out !important;
+}
+
+@keyframes pulseDelete {
+  0% { transform: scale(1); box-shadow: 0 0 8px rgba(225, 29, 72, 0.4); }
+  100% { transform: scale(1.06); box-shadow: 0 0 16px rgba(225, 29, 72, 0.85); }
 }
 
 .btn-detail-delete {
@@ -1827,6 +1852,13 @@ pre {
   cursor: pointer;
   transition: all var(--transition-fast);
   margin-right: 8px;
+  user-select: none;
+  position: relative;
+  z-index: 10;
+}
+
+.btn-detail-delete * {
+  pointer-events: none;
 }
 
 .btn-detail-delete:hover {

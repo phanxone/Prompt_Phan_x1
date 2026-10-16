@@ -1001,11 +1001,39 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Two-step inline confirmation helper (no annoying/blocked browser popup)
+  function setupDeleteButton(btn, onConfirm) {
+    if (!btn) return;
+    let timer = null;
+    const originalHtml = btn.innerHTML;
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+
+      if (btn.classList.contains('btn-confirming')) {
+        // Step 2: Confirmed!
+        clearTimeout(timer);
+        btn.classList.remove('btn-confirming');
+        btn.innerHTML = originalHtml;
+        onConfirm();
+      } else {
+        // Step 1: Ask inline confirmation
+        btn.classList.add('btn-confirming');
+        btn.innerHTML = `⚠️ ยืนยันลบ?`;
+        showToast('กดปุ่ม "ยืนยันลบ?" อีกครั้งเพื่อลบรายการนี้', 'info');
+
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          btn.classList.remove('btn-confirming');
+          btn.innerHTML = originalHtml;
+        }, 3500);
+      }
+    });
+  }
+
   async function deleteVaultItem(item, cardEl) {
     if (!item || !item.id) return;
-
-    const confirmDelete = confirm(`คุณต้องการลบ "${item.title || 'ผลงานนี้'}" ออกจากคลังเก็บของใช่หรือไม่?`);
-    if (!confirmDelete) return;
 
     // 1. จำการลบไว้ใน LocalStorage ทันที
     addDeletedVaultId(item.id);
@@ -1031,7 +1059,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 4. อัปเดตตัวเลข badge
     setTimeout(updateVaultCountBadge, 350);
-    showToast('ลบผลงานออกจากคลังเรียบร้อยแล้ว', 'info');
+    showToast('✓ ลบผลงานออกจากคลังเก็บของเรียบร้อยแล้ว', 'success');
 
     // 5. ส่งคำสั่งลบไปยังฐานข้อมูล Supabase ด้วย (ถ้ามีสิทธิ์)
     try {
@@ -1084,7 +1112,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (btnDetailDelete) {
-    btnDetailDelete.addEventListener('click', () => {
+    setupDeleteButton(btnDetailDelete, () => {
       if (currentDetailItem) {
         deleteVaultItem(currentDetailItem);
       }
@@ -1313,11 +1341,10 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         `;
 
-        // ปุ่มลบรายการ
+        // ปุ่มลบรายการ (ยืนยันแบบ 2 จังหวะ Inline ปลอดภัย ไม่โดนเบราว์เซอร์บล็อก)
         const btnDelete = card.querySelector('.btn-delete-record');
         if (btnDelete) {
-          btnDelete.addEventListener('click', (e) => {
-            e.stopPropagation();
+          setupDeleteButton(btnDelete, () => {
             deleteVaultItem(item, card);
           });
         }
@@ -1330,7 +1357,8 @@ document.addEventListener('DOMContentLoaded', () => {
             openVaultDetailModal(item);
           });
         }
-        card.addEventListener('click', () => {
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('.btn-delete-record') || e.target.closest('.btn-open-record')) return;
           openVaultDetailModal(item);
         });
 
