@@ -276,34 +276,63 @@ document.addEventListener('DOMContentLoaded', () => {
     updatePayloadSummary();
   }
 
+  // Helper: Compress/Resize image dataUrl to keep storage lightweight (< 200KB per image)
+  function compressImageToDataUrl(file, maxWidth = 1200, quality = 0.82) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressed = canvas.toDataURL('image/jpeg', quality);
+          resolve(compressed);
+        };
+        img.onerror = () => resolve(e.target.result);
+        img.src = e.target.result;
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+  }
+
   // --- Add Multiple Files Handler ---
-  function addFiles(files) {
+  async function addFiles(files) {
     if (!files || files.length === 0) return;
 
     let addedCount = 0;
-    Array.from(files).forEach(file => {
+    for (const file of Array.from(files)) {
       if (!file.type.startsWith('image/')) {
         showToast(`ไฟล์ ${file.name} ไม่ใช่รูปภาพ ข้ามการอัปโหลด`, 'error');
-        return;
+        continue;
       }
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
+      const compressedDataUrl = await compressImageToDataUrl(file);
+      if (compressedDataUrl) {
         selectedFiles.push({
           id: 'img_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
           file: file,
           name: file.name,
           size: file.size,
-          dataUrl: e.target.result
+          dataUrl: compressedDataUrl
         });
-        renderGallery();
-      };
-      reader.readAsDataURL(file);
-      addedCount++;
-    });
+        addedCount++;
+      }
+    }
 
     if (addedCount > 0) {
-      showToast(`เพิ่มรูปภาพสำเร็จ (${addedCount} รูป)`);
+      renderGallery();
+      snapshotActiveSession(); // บันทึกรูปติดกับแชทนี้ทันที
+      showToast(`✓ บันทึกรูปสินค้าเข้าแชทนี้แล้ว (${addedCount} รูป)`);
     }
   }
 
@@ -317,6 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const idx = parseInt(btnDel.getAttribute('data-index'), 10);
       selectedFiles.splice(idx, 1);
       renderGallery();
+      snapshotActiveSession(); // อัปเดตการลบรูปในแชททันที
       showToast('ลบรูปภาพแล้ว', 'info');
       return;
     }
@@ -343,6 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
     selectedFiles = [];
     fileInput.value = '';
     renderGallery();
+    snapshotActiveSession(); // อัปเดตในแชททันที
     showToast('ล้างรูปภาพทั้งหมดแล้ว', 'info');
   });
 
@@ -590,7 +621,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
           uploadedImageUrls.push(publicUrlData.publicUrl);
           uploadedFileNames.push(item.name);
+          if (selectedFiles[i]) {
+            selectedFiles[i].storageUrl = publicUrlData.publicUrl;
+          }
         }
+        snapshotActiveSession();
       }
 
       // Step 2: Insert Record into Supabase `commands` Table
@@ -1801,13 +1836,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Auto-snapshot when typing in prompt
+  // Real-Time Auto-snapshot when typing in prompt or leaving
   if (promptInput) {
     promptInput.addEventListener('input', () => {
       clearTimeout(window._promptSaveTimeout);
-      window._promptSaveTimeout = setTimeout(snapshotActiveSession, 1200);
+      window._promptSaveTimeout = setTimeout(snapshotActiveSession, 400);
     });
+    promptInput.addEventListener('blur', snapshotActiveSession);
   }
+  window.addEventListener('beforeunload', snapshotActiveSession);
 
   // Start Sessions Manager
   initChatSessions();
