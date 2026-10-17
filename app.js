@@ -97,6 +97,42 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnClearPrompt = document.getElementById('btnClearPrompt');
   const suggestionChips = document.getElementById('suggestionChips');
 
+  // --- Product Link Elements ---
+  const productUrlInput = document.getElementById('productUrlInput');
+  const btnClearProductUrl = document.getElementById('btnClearProductUrl');
+  const productLinkBadgeRow = document.getElementById('productLinkBadgeRow');
+  const productPlatformTag = document.getElementById('productPlatformTag');
+  const productPlatformName = document.getElementById('productPlatformName');
+  const productLinkValidMsg = document.getElementById('productLinkValidMsg');
+
+  function updateProductUrlBadge(urlStr) {
+    if (!productUrlInput) return;
+    const cleanUrl = (urlStr || '').trim();
+    if (!cleanUrl) {
+      if (btnClearProductUrl) btnClearProductUrl.style.display = 'none';
+      if (productLinkBadgeRow) productLinkBadgeRow.style.display = 'none';
+      return;
+    }
+
+    if (btnClearProductUrl) btnClearProductUrl.style.display = 'inline-flex';
+    if (productLinkBadgeRow) productLinkBadgeRow.style.display = 'flex';
+
+    const lower = cleanUrl.toLowerCase();
+    let platformName = 'ลิงก์สินค้าออนไลน์';
+
+    if (lower.includes('tiktok')) {
+      platformName = 'TikTok Shop';
+    } else if (lower.includes('shopee')) {
+      platformName = 'Shopee Store';
+    } else if (lower.includes('lazada')) {
+      platformName = 'Lazada Mall';
+    } else if (lower.includes('line.me') || lower.includes('myshop')) {
+      platformName = 'LINE MyShop';
+    }
+
+    if (productPlatformName) productPlatformName.textContent = platformName;
+  }
+
   const btnResetAll = document.getElementById('btnResetAll');
   const btnSubmitCommand = document.getElementById('btnSubmitCommand');
   const btnSpinner = document.getElementById('btnSpinner');
@@ -514,17 +550,48 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Payload Summary Updater ---
   function updatePayloadSummary() {
     const count = selectedFiles.length;
-    const promptLen = promptInput.value.trim().length;
+    const promptLen = promptInput ? promptInput.value.trim().length : 0;
+    const hasLink = productUrlInput && productUrlInput.value.trim().length > 0;
 
-    if (count > 0 && promptLen > 0) {
-      summaryText.textContent = `พร้อมส่ง: ${count} รูปภาพ + ข้อความคำสั่ง`;
-    } else if (count > 0) {
-      summaryText.textContent = `พร้อมส่ง: ${count} รูปภาพ [ยังไม่พิมพ์คำสั่ง]`;
-    } else if (promptLen > 0) {
-      summaryText.textContent = `พร้อมส่ง: คำสั่งข้อความ [ไม่มีรูปภาพ]`;
+    const parts = [];
+    if (count > 0) parts.push(`${count} รูปภาพ`);
+    if (hasLink) parts.push(`ลิงก์สินค้า`);
+    if (promptLen > 0) parts.push(`ข้อความคำสั่ง`);
+
+    if (parts.length > 0) {
+      summaryText.textContent = `พร้อมส่ง: ${parts.join(' + ')}`;
     } else {
-      summaryText.textContent = 'ยังไม่ได้เลือกรูปภาพหรือระบุคำสั่ง';
+      summaryText.textContent = 'ยังไม่ได้เลือกรูปภาพ, วางลิงก์สินค้า หรือระบุคำสั่ง';
     }
+  }
+
+  // --- Product URL Event Listeners ---
+  if (productUrlInput) {
+    productUrlInput.addEventListener('input', () => {
+      updateProductUrlBadge(productUrlInput.value);
+      updatePayloadSummary();
+      clearTimeout(window._urlSaveTimeout);
+      window._urlSaveTimeout = setTimeout(snapshotActiveSession, 400);
+    });
+
+    productUrlInput.addEventListener('blur', snapshotActiveSession);
+
+    productUrlInput.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        executeCommand();
+      }
+    });
+  }
+
+  if (btnClearProductUrl) {
+    btnClearProductUrl.addEventListener('click', () => {
+      if (productUrlInput) productUrlInput.value = '';
+      updateProductUrlBadge('');
+      updatePayloadSummary();
+      snapshotActiveSession();
+      showToast('ล้างลิงก์สินค้าแล้ว');
+    });
   }
 
   // --- Keyboard Shortcuts: Ctrl + Enter ---
@@ -541,6 +608,10 @@ document.addEventListener('DOMContentLoaded', () => {
     fileInput.value = '';
     renderGallery();
     promptInput.value = '';
+    if (productUrlInput) {
+      productUrlInput.value = '';
+      updateProductUrlBadge('');
+    }
     charCounter.textContent = '0 / 4,000';
     btnClearPrompt.style.display = 'none';
     resultsSection.style.display = 'none';
@@ -601,7 +672,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- Direct Full-Suite Generation via GPT-4o Vision & Image Gen ---
-  async function callDirectAiGeneration({ promptText, uploadedImageUrls, commandId }) {
+  async function callDirectAiGeneration({ promptText, uploadedImageUrls, commandId, productUrl }) {
     const apiKey = (typeof CONFIG !== 'undefined' && CONFIG.OPENAI_API_KEY) ? CONFIG.OPENAI_API_KEY.trim() : '';
     if (!apiKey) {
       throw new Error('ไม่พบคีย์ OPENAI_API_KEY ใน config.js');
@@ -610,10 +681,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. วิเคราะห์สินค้าและเขียนชุดคอนเทนต์ด้วย GPT-4o Vision
     updateLoadingProgress(55, 'GPT-4o วิเคราะห์สินค้า', 'กำลังวิเคราะห์สีสัน ลายผ้า และสร้างแคปชัน TikTok...', 2);
 
+    let systemPrompt = `คุณเป็นผู้เชี่ยวชาญด้าน TikTok Affiliate ปักตะกร้า ให้วิเคราะห์รูปสินค้าจริง (และลิงก์สินค้าถ้ามี) อย่างละเอียดถี่ถ้วน แล้วสร้าง JSON ผลลัพธ์ภาษาไทยและคำอธิบายลักษณะสินค้าภาษาอังกฤษเพื่อนำไปสร้างภาพ AI ที่ตรงกับสินค้าจริง 100%:\nคำสั่ง: ${promptText}\n`;
+
+    if (productUrl) {
+      systemPrompt += `ลิงก์สินค้าอ้างอิง: ${productUrl}\n(ให้อ่านชื่อแบรนด์ หมวดหมู่สินค้า และจุดเด่นจาก URL นี้ประกอบการวิเคราะห์)\n`;
+    }
+
+    systemPrompt += `\nตอบกลับเป็น JSON รูปแบบนี้เท่านั้น:
+{
+  "title": "ชื่อสินค้าภาษาไทยสั้นกระชับ ตรงกับสินค้าจริงในภาพ",
+  "caption": "คำอธิบายคลิป TikTok ชวนปักตะกร้าส้มมุมล่างซ้าย พร้อมจุดเด่นจริงของสินค้า",
+  "hashtags": "แฮชแท็ก 5-7 อัน เช่น #รีวิวสินค้า #TikTokป้ายยา #พิกัดในตะกร้า",
+  "visual_description": "Extremely detailed English visual description of the exact physical product item shown in the images (specify exact item category e.g. two-piece shorts and t-shirt outfit / sports shoes / cosmetic tube, exact colors, exact color gradient transitions, fabric/material texture, graphics, prints, typography, logos, patterns, zippers, tags, styling)",
+  "google_flow_prompt": "พรอมป์ต์ภาษาอังกฤษ 6 ซีน [Scene 1] ถึง [Scene 6] ระบุมุมกล้อง แสง และ SFX ไม่มีเสียงพูด ห้ามเห็นใบหน้าบุคคล ตรงตามสินค้าจริงทุกซีน"
+}`;
+
     const userContent = [
       {
         type: 'text',
-        text: `คุณเป็นผู้เชี่ยวชาญด้าน TikTok Affiliate ปักตะกร้า ให้วิเคราะห์รูปสินค้าและคำสั่งนี้ แล้วสร้าง JSON ผลลัพธ์ภาษาไทยและพรอมป์ต์สำหรับ AI สร้างรูปภาพ ดังนี้:\nคำสั่ง: ${promptText}\n\nตอบกลับเป็น JSON รูปแบบนี้เท่านั้น:\n{\n  "title": "ชื่อสินค้าภาษาไทยสั้นกระชับ ตรงกับสินค้าจริงในภาพ",\n  "caption": "คำอธิบายคลิป TikTok ชวนปักตะกร้าส้มมุมล่างซ้าย",\n  "hashtags": "แฮชแท็ก 5-7 อัน เช่น #รีวิวสินค้า #TikTokป้ายยา #พิกัดในตะกร้า",\n  "visual_description": "Detailed English visual description of the product in the images (exact colors, gradient, patterns, graphics, logo, garment/item type, materials)",\n  "storyboard_prompt": "Detailed English prompt for generating a commercial 6-panel photo storyboard collage for e-commerce review featuring the EXACT product described in visual_description. 6 panels showing unboxing, fabric/detail, modeling, features, and final hero display. Clean studio lighting, flat lay and hand demonstration, no faces.",\n  "cover_prompt": "Detailed English prompt for generating a vertical 9:16 aesthetic TikTok hero cover photo featuring the EXACT product described in visual_description with modern commercial studio lighting.",\n  "google_flow_prompt": "พรอมป์ต์ภาษาอังกฤษ 6 ซีน [Scene 1] ถึง [Scene 6] ระบุมุมกล้อง แสง และ SFX ไม่มีเสียงพูด ห้ามเห็นใบหน้าบุคคล"\n}`
+        text: systemPrompt
       }
     ];
 
@@ -650,20 +736,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const title = parsed.title || 'ชุดคอนเทนต์รีวิวสินค้า TikTok';
     const caption = parsed.caption || 'รีวิวสินค้าคุณภาพดี ปักตะกร้าส้มมุมล่างซ้ายได้เลย!';
     const hashtags = parsed.hashtags || '#รีวิวสินค้า #TikTokป้ายยา #พิกัดในตะกร้า';
+    const visual_description = parsed.visual_description || title;
     const google_flow_prompt = parsed.google_flow_prompt || '';
-    const storyboard_prompt = parsed.storyboard_prompt || `Commercial 6-panel photo storyboard collage: ${title}. High quality realistic commercial photos showing 6 steps of product review. Clean lighting, no faces.`;
-    const cover_prompt = parsed.cover_prompt || `Vertical 9:16 aesthetic product hero photo for TikTok cover: ${title}. Trendy commercial studio lighting.`;
+
+    // สร้าง Prompt วาดรูปที่ยึดติดกับตัวสินค้าจริงแบบ 100% ไม่ปล่อยให้โมเดล AI มั่วหมวดเด็ดขาด!
+    const finalStoryboardPrompt = `Commercial e-commerce review 6-panel photo storyboard collage. The EXACT product featured consistently across all 6 panels is: ${visual_description}. Panel 1: unboxing the package on a clean studio table. Panel 2: close-up macro shot showing fabric texture, stitch details, prints and gradient colors. Panel 3: demonstration of the product fit, styling, and comfort. Panel 4: close-up detailing the graphics, logos and distinctive design. Panel 5: demonstration of features, elasticity or durability. Panel 6: final hero flat-lay display with matching accessories under bright clean studio lights. Realistic commercial product photography, sharp focus, no human faces, only hands holding or demonstrating.`;
+
+    const finalCoverPrompt = `Vertical 9:16 high-end commercial hero photo for TikTok video cover featuring the EXACT product: ${visual_description}. Displayed in a trendy aesthetic modern studio setting with cinematic commercial lighting, subtle highlights, accurate vibrant product colors, clean elegant background, sharp 8k focus product hero shoot, no human faces.`;
 
     // 2. เจนภาพสตอรีบอร์ด 6 ซีน ด้วย AI
     updateLoadingProgress(70, 'สร้างสตอรีบอร์ด 6 ซีน', 'AI กำลังเรนเดอร์ภาพสตอรีบอร์ดรวม 6 ซีนตามสินค้าจริง...', 2);
-    let storyboard_url = await generateOpenAiImageDirect(apiKey, storyboard_prompt, 'ai_storyboard');
+    let storyboard_url = await generateOpenAiImageDirect(apiKey, finalStoryboardPrompt, 'ai_storyboard');
     if (!storyboard_url) {
       storyboard_url = (uploadedImageUrls && uploadedImageUrls[0]) || '';
     }
 
     // 3. เจนภาพปกคลิป TikTok 9:16 ด้วย AI
     updateLoadingProgress(88, 'สร้างภาพปก TikTok 9:16', 'AI กำลังเรนเดอร์ภาพปกแนวตั้ง 9:16 ให้สะดุดตา...', 3);
-    let cover_url = await generateOpenAiImageDirect(apiKey, cover_prompt, 'ai_cover');
+    let cover_url = await generateOpenAiImageDirect(apiKey, finalCoverPrompt, 'ai_cover');
     if (!cover_url) {
       cover_url = (uploadedImageUrls && (uploadedImageUrls[1] || uploadedImageUrls[0])) || '';
     }
@@ -708,10 +798,12 @@ document.addEventListener('DOMContentLoaded', () => {
   async function executeCommand() {
     if (isSubmitting) return;
 
-    const promptText = promptInput.value.trim();
-    if (selectedFiles.length === 0 && !promptText) {
-      showToast('กรุณาอัปโหลดรูปภาพ หรือพิมพ์ข้อความคำสั่งก่อนส่ง', 'error');
-      promptInput.focus();
+    const promptText = promptInput ? promptInput.value.trim() : '';
+    const productUrl = productUrlInput ? productUrlInput.value.trim() : '';
+
+    if (selectedFiles.length === 0 && !promptText && !productUrl) {
+      showToast('กรุณาอัปโหลดรูปภาพ, วางลิงก์สินค้า หรือพิมพ์ข้อความคำสั่งก่อนส่ง', 'error');
+      if (promptInput) promptInput.focus();
       return;
     }
 
@@ -788,13 +880,14 @@ document.addEventListener('DOMContentLoaded', () => {
       let insertError = null;
 
       const fullPayload = {
-        prompt: promptText || '(ไม่มีคำสั่งข้อความ)',
+        prompt: promptText || (productUrl ? `ลิงก์สินค้า: ${productUrl}` : '(ไม่มีคำสั่งข้อความ)'),
         image_url: uploadedImageUrls[0] || null,
         image_urls: uploadedImageUrls,
         image_names: uploadedFileNames,
         image_count: uploadedImageUrls.length,
         status: 'pending',
         result_data: {
+          product_url: productUrl,
           image_urls: uploadedImageUrls,
           image_names: uploadedFileNames,
           image_count: uploadedImageUrls.length
@@ -805,11 +898,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (res1.error) {
         const fallbackPayload = {
-          prompt: promptText || '(ไม่มีคำสั่งข้อความ)',
+          prompt: promptText || (productUrl ? `ลิงก์สินค้า: ${productUrl}` : '(ไม่มีคำสั่งข้อความ)'),
           image_url: uploadedImageUrls[0] || null,
           image_name: uploadedFileNames[0] || null,
           status: 'pending',
           result_data: {
+            product_url: productUrl,
             image_urls: uploadedImageUrls,
             image_names: uploadedFileNames,
             image_count: uploadedImageUrls.length
@@ -843,7 +937,8 @@ document.addEventListener('DOMContentLoaded', () => {
           const directResult = await callDirectAiGeneration({
             promptText: promptText || '(ไม่มีคำสั่งข้อความ)',
             uploadedImageUrls,
-            commandId
+            commandId,
+            productUrl
           });
 
           if (directResult) {
@@ -1698,6 +1793,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     sessions[idx].files = serializedFiles;
     sessions[idx].promptText = promptInput ? promptInput.value : '';
+    sessions[idx].productUrl = productUrlInput ? productUrlInput.value.trim() : '';
     sessions[idx].updated_at = new Date().toISOString();
     
     // Also save current result state if visible
@@ -1735,6 +1831,7 @@ document.addEventListener('DOMContentLoaded', () => {
       updated_at: new Date().toISOString(),
       files: [],
       promptText: '',
+      productUrl: '',
       resultData: null
     };
 
@@ -1763,6 +1860,13 @@ document.addEventListener('DOMContentLoaded', () => {
       promptInput.value = (session.promptText !== undefined && session.promptText !== null) ? session.promptText : '';
       charCounter.textContent = `${promptInput.value.length.toLocaleString()} / 4,000`;
       btnClearPrompt.style.display = promptInput.value ? 'inline-block' : 'none';
+      updatePayloadSummary();
+    }
+
+    // Restore product url (empty if new)
+    if (productUrlInput) {
+      productUrlInput.value = (session.productUrl !== undefined && session.productUrl !== null) ? session.productUrl : '';
+      updateProductUrlBadge(productUrlInput.value);
       updatePayloadSummary();
     }
 
@@ -1939,6 +2043,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updated_at: new Date().toISOString(),
         files: [],
         promptText: '',
+        productUrl: '',
         resultData: null
       };
       sessions.push(defaultSession);
