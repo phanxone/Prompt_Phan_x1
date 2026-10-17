@@ -548,6 +548,159 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('รีเซ็ตแบบฟอร์มเป็นค่าว่างเรียบร้อย');
   });
 
+  // --- Direct Image Generation via OpenAI API from Client ---
+  async function generateOpenAiImageDirect(apiKey, promptText, filenamePrefix = 'ai_image') {
+    try {
+      const res = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'gpt-image-1-mini',
+          prompt: promptText,
+          n: 1,
+          size: '1024x1024'
+        })
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error(`OpenAI image error (${res.status}):`, errText);
+        return null;
+      }
+
+      const data = await res.json();
+      const b64 = data.data && data.data[0] ? data.data[0].b64_json : null;
+      const directUrl = data.data && data.data[0] ? data.data[0].url : null;
+
+      if (b64 && supabase) {
+        const blob = await (await fetch(`data:image/png;base64,${b64}`)).blob();
+
+        const storagePath = `${filenamePrefix}_${Date.now()}_${Math.floor(Math.random() * 10000)}.png`;
+        const { error: upErr } = await supabase.storage.from(CONFIG.SUPABASE_BUCKET || 'command-images').upload(storagePath, blob, {
+          contentType: 'image/png',
+          upsert: true
+        });
+
+        if (!upErr) {
+          const { data: pData } = supabase.storage.from(CONFIG.SUPABASE_BUCKET || 'command-images').getPublicUrl(storagePath);
+          console.log(`✓ อัปโหลดภาพ AI เข้า Supabase (${filenamePrefix}) สำเร็จ:`, pData.publicUrl);
+          return pData.publicUrl;
+        } else {
+          console.error('Supabase storage upload error:', upErr);
+        }
+      }
+
+      return directUrl;
+    } catch (e) {
+      console.error('generateOpenAiImageDirect exception:', e);
+      return null;
+    }
+  }
+
+  // --- Direct Full-Suite Generation via GPT-4o Vision & Image Gen ---
+  async function callDirectAiGeneration({ promptText, uploadedImageUrls, commandId }) {
+    const apiKey = (typeof CONFIG !== 'undefined' && CONFIG.OPENAI_API_KEY) ? CONFIG.OPENAI_API_KEY.trim() : '';
+    if (!apiKey) {
+      throw new Error('ไม่พบคีย์ OPENAI_API_KEY ใน config.js');
+    }
+
+    // 1. วิเคราะห์สินค้าและเขียนชุดคอนเทนต์ด้วย GPT-4o Vision
+    updateLoadingProgress(55, 'GPT-4o วิเคราะห์สินค้า', 'กำลังวิเคราะห์สีสัน ลายผ้า และสร้างแคปชัน TikTok...', 2);
+
+    const userContent = [
+      {
+        type: 'text',
+        text: `คุณเป็นผู้เชี่ยวชาญด้าน TikTok Affiliate ปักตะกร้า ให้วิเคราะห์รูปสินค้าและคำสั่งนี้ แล้วสร้าง JSON ผลลัพธ์ภาษาไทยและพรอมป์ต์สำหรับ AI สร้างรูปภาพ ดังนี้:\nคำสั่ง: ${promptText}\n\nตอบกลับเป็น JSON รูปแบบนี้เท่านั้น:\n{\n  "title": "ชื่อสินค้าภาษาไทยสั้นกระชับ ตรงกับสินค้าจริงในภาพ",\n  "caption": "คำอธิบายคลิป TikTok ชวนปักตะกร้าส้มมุมล่างซ้าย",\n  "hashtags": "แฮชแท็ก 5-7 อัน เช่น #รีวิวสินค้า #TikTokป้ายยา #พิกัดในตะกร้า",\n  "visual_description": "Detailed English visual description of the product in the images (exact colors, gradient, patterns, graphics, logo, garment/item type, materials)",\n  "storyboard_prompt": "Detailed English prompt for generating a commercial 6-panel photo storyboard collage for e-commerce review featuring the EXACT product described in visual_description. 6 panels showing unboxing, fabric/detail, modeling, features, and final hero display. Clean studio lighting, flat lay and hand demonstration, no faces.",\n  "cover_prompt": "Detailed English prompt for generating a vertical 9:16 aesthetic TikTok hero cover photo featuring the EXACT product described in visual_description with modern commercial studio lighting.",\n  "google_flow_prompt": "พรอมป์ต์ภาษาอังกฤษ 6 ซีน [Scene 1] ถึง [Scene 6] ระบุมุมกล้อง แสง และ SFX ไม่มีเสียงพูด ห้ามเห็นใบหน้าบุคคล"\n}`
+      }
+    ];
+
+    if (uploadedImageUrls && uploadedImageUrls.length > 0) {
+      uploadedImageUrls.slice(0, 3).forEach(url => {
+        userContent.push({
+          type: 'image_url',
+          image_url: { url }
+        });
+      });
+    }
+
+    const gptRes = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [{ role: 'user', content: userContent }],
+        response_format: { type: 'json_object' }
+      })
+    });
+
+    if (!gptRes.ok) {
+      const errText = await gptRes.text();
+      throw new Error(`GPT-4o Error (${gptRes.status}): ${errText}`);
+    }
+
+    const gptJson = await gptRes.json();
+    const parsed = JSON.parse(gptJson.choices[0].message.content);
+
+    const title = parsed.title || 'ชุดคอนเทนต์รีวิวสินค้า TikTok';
+    const caption = parsed.caption || 'รีวิวสินค้าคุณภาพดี ปักตะกร้าส้มมุมล่างซ้ายได้เลย!';
+    const hashtags = parsed.hashtags || '#รีวิวสินค้า #TikTokป้ายยา #พิกัดในตะกร้า';
+    const google_flow_prompt = parsed.google_flow_prompt || '';
+    const storyboard_prompt = parsed.storyboard_prompt || `Commercial 6-panel photo storyboard collage: ${title}. High quality realistic commercial photos showing 6 steps of product review. Clean lighting, no faces.`;
+    const cover_prompt = parsed.cover_prompt || `Vertical 9:16 aesthetic product hero photo for TikTok cover: ${title}. Trendy commercial studio lighting.`;
+
+    // 2. เจนภาพสตอรีบอร์ด 6 ซีน ด้วย AI
+    updateLoadingProgress(70, 'สร้างสตอรีบอร์ด 6 ซีน', 'AI กำลังเรนเดอร์ภาพสตอรีบอร์ดรวม 6 ซีนตามสินค้าจริง...', 2);
+    let storyboard_url = await generateOpenAiImageDirect(apiKey, storyboard_prompt, 'ai_storyboard');
+    if (!storyboard_url) {
+      storyboard_url = (uploadedImageUrls && uploadedImageUrls[0]) || '';
+    }
+
+    // 3. เจนภาพปกคลิป TikTok 9:16 ด้วย AI
+    updateLoadingProgress(88, 'สร้างภาพปก TikTok 9:16', 'AI กำลังเรนเดอร์ภาพปกแนวตั้ง 9:16 ให้สะดุดตา...', 3);
+    let cover_url = await generateOpenAiImageDirect(apiKey, cover_prompt, 'ai_cover');
+    if (!cover_url) {
+      cover_url = (uploadedImageUrls && (uploadedImageUrls[1] || uploadedImageUrls[0])) || '';
+    }
+
+    // 4. บันทึกผลงานลงตาราง generation_results
+    updateLoadingProgress(96, 'จัดเก็บผลงานลงคลัง', 'กำลังบันทึกลงฐานข้อมูลและคลังเก็บของ...', 3);
+
+    const finalResult = {
+      command_id: commandId,
+      title,
+      caption,
+      hashtags,
+      google_flow_prompt,
+      storyboard_url,
+      cover_url
+    };
+
+    if (supabase) {
+      try {
+        const { data: insRows, error: insErr } = await supabase
+          .from('generation_results')
+          .insert([finalResult])
+          .select();
+
+        if (insRows && insRows[0]) {
+          finalResult.id = insRows[0].id;
+        }
+
+        await supabase.from('commands').update({ status: 'completed' }).eq('id', commandId);
+      } catch (dbErr) {
+        console.warn('DB save notice:', dbErr);
+      }
+    }
+
+    return finalResult;
+  }
+
   // --- Submit Command: Upload to Supabase Storage & Insert Table ---
   let isSubmitting = false;
   btnSubmitCommand.addEventListener('click', executeCommand);
@@ -677,91 +830,90 @@ document.addEventListener('DOMContentLoaded', () => {
       const insertedRecord = insertData && insertData[0] ? insertData[0] : null;
       const commandId = insertedRecord ? insertedRecord.id : null;
 
-      updateLoadingProgress(55, 'AI Engine รับงานแล้ว', 'ตรวจพบคำสั่งแล้ว กำลังประมวลผลชุดคอนเทนต์...', 2);
+      updateLoadingProgress(55, 'AI Engine กำลังเริ่มทำงาน', 'ตรวจพบคำสั่งแล้ว กำลังประมวลผลชุดคอนเทนต์...', 2);
       updateVaultCountBadge();
 
-      // Step 3: Real-Time Polling for Results
-      let pollCount = 0;
-      let isCompleted = false;
-      let simulatedProgress = 55;
+      // Step 3: Direct Client AI Generation (ยิงตรงเข้า OpenAI ทันที ไม่ต้องง้อ Railway!)
+      const apiKey = (typeof CONFIG !== 'undefined' && CONFIG.OPENAI_API_KEY) ? CONFIG.OPENAI_API_KEY : '';
+      let directGenerated = false;
 
-      const pollInterval = setInterval(async () => {
-        if (isCompleted) return;
-        pollCount++;
+      if (apiKey) {
+        try {
+          console.log('🚀 เริ่มต้นสร้างคอนเทนต์และภาพ AI โดยตรงจากหน้าเว็บ...');
+          const directResult = await callDirectAiGeneration({
+            promptText: promptText || '(ไม่มีคำสั่งข้อความ)',
+            uploadedImageUrls,
+            commandId
+          });
 
-        // Smoothly increment progress bar towards 95% while waiting
-        if (simulatedProgress < 94) {
-          simulatedProgress += (simulatedProgress < 75 ? 3 : 1.5);
-          
-          let stepIdx = 2;
-          let label = 'กำลังสร้างสตอรีบอร์ด 6 ซีน';
-          let msg = 'AI กำลังวิเคราะห์รายละเอียดสินค้าและจัดวางสตอรีบอร์ด 6 ซีน...';
+          if (directResult) {
+            directGenerated = true;
+            deliverResultInRealtime(directResult);
+            return;
+          }
+        } catch (directErr) {
+          console.error('Direct AI Gen notice:', directErr);
+          showToast(`ข้อสังเกต: ${directErr.message}`, 'error');
+        }
+      }
 
-          if (simulatedProgress >= 72 && simulatedProgress < 85) {
-            stepIdx = 3;
-            label = 'กำลังสร้างปก TikTok 9:16';
-            msg = 'เรนเดอร์ภาพปกแนวตั้ง 9:16 และเขียนพาดหัวภาษาไทย...';
-          } else if (simulatedProgress >= 85) {
-            stepIdx = 3;
-            label = 'เขียนแคปชัน & พรอมป์ต์';
-            msg = 'กำลังจัดทำคำอธิบาย TikTok, แฮชแท็ก และพรอมป์ต์ Google Flow 6 ซีน...';
+      // Step 3 (Fallback): Polling if direct generation was bypassed
+      if (!directGenerated) {
+        let pollCount = 0;
+        let isCompleted = false;
+        let simulatedProgress = 55;
+
+        const pollInterval = setInterval(async () => {
+          if (isCompleted) return;
+          pollCount++;
+
+          if (simulatedProgress < 94) {
+            simulatedProgress += (simulatedProgress < 75 ? 3 : 1.5);
+            let stepIdx = 2;
+            let label = 'กำลังสร้างสตอรีบอร์ด 6 ซีน';
+            let msg = 'AI กำลังวิเคราะห์รายละเอียดสินค้าและจัดวางสตอรีบอร์ด 6 ซีน...';
+
+            if (simulatedProgress >= 72 && simulatedProgress < 85) {
+              stepIdx = 3;
+              label = 'กำลังสร้างปก TikTok 9:16';
+              msg = 'เรนเดอร์ภาพปกแนวตั้ง 9:16 และเขียนพาดหัวภาษาไทย...';
+            } else if (simulatedProgress >= 85) {
+              stepIdx = 3;
+              label = 'เขียนแคปชัน & พรอมป์ต์';
+              msg = 'กำลังจัดทำคำอธิบาย TikTok, แฮชแท็ก และพรอมป์ต์ Google Flow 6 ซีน...';
+            }
+            updateLoadingProgress(simulatedProgress, label, msg, stepIdx);
           }
 
-          updateLoadingProgress(simulatedProgress, label, msg, stepIdx);
-        }
-
-        // Check if generation_results has the record for this command
-        try {
-          if (commandId) {
-            const { data: genRows } = await supabase
-              .from('generation_results')
-              .select('*')
-              .eq('command_id', commandId)
-              .limit(1);
-
-            if (genRows && genRows.length > 0) {
-              isCompleted = true;
-              clearInterval(pollInterval);
-              deliverResultInRealtime(genRows[0]);
-              return;
-            }
-
-            // Also check commands table status
-            const { data: cmdRows } = await supabase
-              .from('commands')
-              .select('*')
-              .eq('id', commandId)
-              .single();
-
-            if (cmdRows && cmdRows.status === 'completed') {
-              const { data: lastGen } = await supabase
+          try {
+            if (commandId) {
+              const { data: genRows } = await supabase
                 .from('generation_results')
                 .select('*')
                 .eq('command_id', commandId)
                 .limit(1);
 
-              if (lastGen && lastGen.length > 0) {
+              if (genRows && genRows.length > 0) {
                 isCompleted = true;
                 clearInterval(pollInterval);
-                deliverResultInRealtime(lastGen[0]);
+                deliverResultInRealtime(genRows[0]);
                 return;
               }
             }
+          } catch (pollErr) {
+            console.log('Poll check error:', pollErr);
           }
-        } catch (pollErr) {
-          console.log('Poll check error:', pollErr);
-        }
 
-        // Safety fallback after 35s (25 checks)
-        if (pollCount >= 25) {
-          clearInterval(pollInterval);
-          if (!isCompleted) {
-            updateLoadingProgress(98, 'ส่งงานเข้าคิวสำเร็จ', 'ระบบบันทึกงานแล้ว สามารถตรวจสอบผลลัพธ์ได้ที่คลังเก็บของ', 3);
-            setTimeout(hideLoadingScreen, 1200);
-            showToast('บันทึกคำสั่งแล้ว ระบบ Watcher กำลังทำงานในเบื้องหลัง', 'info');
+          if (pollCount >= 25) {
+            clearInterval(pollInterval);
+            if (!isCompleted) {
+              updateLoadingProgress(98, 'ส่งงานเข้าคิวสำเร็จ', 'ระบบบันทึกงานแล้ว สามารถตรวจสอบผลลัพธ์ได้ที่คลังเก็บของ', 3);
+              setTimeout(hideLoadingScreen, 1200);
+              showToast('บันทึกคำสั่งแล้ว ระบบ Watcher กำลังทำงานในเบื้องหลัง', 'info');
+            }
           }
-        }
-      }, 1400);
+        }, 1400);
+      }
 
       function deliverResultInRealtime(resultItem) {
         updateLoadingProgress(100, 'เสร็จสมบูรณ์ 100%!', '✨ สร้างชุดคอนเทนต์เสร็จสิ้น กำลังแสดงผลงานแบบเรียลไทม์...', 3);
