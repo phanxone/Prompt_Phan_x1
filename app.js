@@ -446,10 +446,7 @@ document.addEventListener('DOMContentLoaded', () => {
 - พรอมป์ต์ภาษาอังกฤษสำหรับ Google Flow จำนวน 1 ชุด
 - ข้อความภาษาไทย ได้แก่ ชื่อสินค้า คำอธิบาย และแฮชแท็ก`;
 
-  // Pre-fill promptInput with default prompt
-  if (promptInput && !promptInput.value.trim()) {
-    promptInput.value = DEFAULT_AFFILIATE_PROMPT;
-  }
+  // Initial counter setup (keep empty for clean new start)
   if (promptInput) {
     const initLen = promptInput.value.length;
     if (charCounter) charCounter.textContent = `${initLen.toLocaleString()} / 4,000`;
@@ -512,12 +509,12 @@ document.addEventListener('DOMContentLoaded', () => {
     selectedFiles = [];
     fileInput.value = '';
     renderGallery();
-    promptInput.value = DEFAULT_AFFILIATE_PROMPT;
-    charCounter.textContent = `${DEFAULT_AFFILIATE_PROMPT.length.toLocaleString()} / 4,000`;
-    btnClearPrompt.style.display = 'inline-block';
+    promptInput.value = '';
+    charCounter.textContent = '0 / 4,000';
+    btnClearPrompt.style.display = 'none';
     resultsSection.style.display = 'none';
     updatePayloadSummary();
-    showToast('รีเซ็ตแบบฟอร์มเป็นค่าเริ่มต้นเรียบร้อย');
+    showToast('รีเซ็ตแบบฟอร์มเป็นค่าว่างเรียบร้อย');
   });
 
   // --- Submit Command: Upload to Supabase Storage & Insert Table ---
@@ -1550,7 +1547,7 @@ document.addEventListener('DOMContentLoaded', () => {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       files: [],
-      promptText: DEFAULT_AFFILIATE_PROMPT,
+      promptText: '',
       resultData: null
     };
 
@@ -1574,9 +1571,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (currentChatNameDisplay) currentChatNameDisplay.textContent = session.title;
     if (activeBarTitle) activeBarTitle.textContent = session.title;
 
-    // Restore prompt
+    // Restore prompt (empty if new)
     if (promptInput) {
-      promptInput.value = session.promptText || DEFAULT_AFFILIATE_PROMPT;
+      promptInput.value = (session.promptText !== undefined && session.promptText !== null) ? session.promptText : '';
       charCounter.textContent = `${promptInput.value.length.toLocaleString()} / 4,000`;
       btnClearPrompt.style.display = promptInput.value ? 'inline-block' : 'none';
       updatePayloadSummary();
@@ -1754,7 +1751,7 @@ document.addEventListener('DOMContentLoaded', () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         files: [],
-        promptText: DEFAULT_AFFILIATE_PROMPT,
+        promptText: '',
         resultData: null
       };
       sessions.push(defaultSession);
