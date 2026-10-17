@@ -739,6 +739,11 @@ document.addEventListener('DOMContentLoaded', () => {
           loadVaultItemIntoView(resultItem);
           showToast('🎉 AI สร้างชุดคอนเทนต์เสร็จสมบูรณ์แบบเรียลไทม์!', 'success');
           updateVaultCountBadge();
+
+          // Sync result into active Chat Session
+          if (typeof syncResultWithActiveSession === 'function') {
+            syncResultWithActiveSession(resultItem);
+          }
         }, 650);
       }
 
@@ -1422,17 +1427,392 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // อัปเดตจำนวนในคลังเงียบๆ ตอนเปิดเว็บ (หน้าเว็บยังคงสะอาด ไม่มีผลลัพธ์เก่าค้าง)
-  setTimeout(updateVaultCountBadge, 800);
+  // =========================================================================
+  // Chat Sessions System (ChatGPT / Claude Style Multi-Product Sessions)
+  // =========================================================================
+  const btnToggleChatSidebar = document.getElementById('btnToggleChatSidebar');
+  const chatSidebar = document.getElementById('chatSidebar');
+  const chatSidebarBackdrop = document.getElementById('chatSidebarBackdrop');
+  const btnCloseSidebar = document.getElementById('btnCloseSidebar');
+  const btnNewChat = document.getElementById('btnNewChat');
+  const btnInlineNewChat = document.getElementById('btnInlineNewChat');
+  const currentChatNameDisplay = document.getElementById('currentChatNameDisplay');
+  const activeBarTitle = document.getElementById('activeBarTitle');
+  const btnRenameCurrentChat = document.getElementById('btnRenameCurrentChat');
+  const chatSessionsList = document.getElementById('chatSessionsList');
+  const chatSessionsEmpty = document.getElementById('chatSessionsEmpty');
+  const chatCountBadge = document.getElementById('chatCountBadge');
+  const chatBadgePill = document.getElementById('chatBadgePill');
+  const chatTotalCountText = document.getElementById('chatTotalCountText');
+  const btnClearAllChats = document.getElementById('btnClearAllChats');
 
-  // --- Theme Toggle Logic ---
-  let isLight = false;
-  if (btnThemeToggle) {
-    btnThemeToggle.addEventListener('click', () => {
-      isLight = !isLight;
-      document.documentElement.setAttribute('data-theme', isLight ? 'light' : 'dark');
-      showToast(`สลับเป็นธีม${isLight ? 'สว่าง (Light)' : 'มืด (Dark)'}`);
+  const SESSIONS_STORAGE_KEY = 'uplord_chat_sessions_v1';
+  const ACTIVE_SESSION_STORAGE_KEY = 'uplord_active_session_id_v1';
+
+  let currentActiveSessionId = null;
+
+  function dataURLtoFile(dataurl, filename) {
+    if (!dataurl || typeof dataurl !== 'string' || !dataurl.includes(',')) return null;
+    try {
+      const arr = dataurl.split(',');
+      const mimeMatch = arr[0].match(/:(.*?);/);
+      const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      return new File([u8arr], filename || 'image.jpg', { type: mime });
+    } catch (e) {
+      console.warn('dataURLtoFile error:', e);
+      return null;
+    }
+  }
+
+  function getSavedSessions() {
+    try {
+      const raw = localStorage.getItem(SESSIONS_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveSessionsToStorage(sessions) {
+    try {
+      localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sessions));
+    } catch (e) {
+      console.warn('localStorage quota warning:', e);
+    }
+  }
+
+  function openChatSidebar() {
+    if (chatSidebar) chatSidebar.classList.add('open');
+    if (chatSidebarBackdrop) chatSidebarBackdrop.style.display = 'block';
+  }
+
+  function closeChatSidebar() {
+    if (chatSidebar) chatSidebar.classList.remove('open');
+    if (chatSidebarBackdrop) chatSidebarBackdrop.style.display = 'none';
+  }
+
+  // Save current UI state into the active session
+  function snapshotActiveSession() {
+    if (!currentActiveSessionId) return;
+    const sessions = getSavedSessions();
+    const idx = sessions.findIndex(s => s.id === currentActiveSessionId);
+    if (idx === -1) return;
+
+    // Serialize selectedFiles (only keep dataUrl, name, size to persist)
+    const serializedFiles = selectedFiles.map(item => ({
+      id: item.id,
+      name: item.name,
+      size: item.size,
+      dataUrl: item.dataUrl
+    }));
+
+    sessions[idx].files = serializedFiles;
+    sessions[idx].promptText = promptInput ? promptInput.value : '';
+    sessions[idx].updated_at = new Date().toISOString();
+    
+    // Also save current result state if visible
+    if (resultsSection && resultsSection.style.display !== 'none') {
+      const pTitle = document.getElementById('aiProductTitle')?.textContent || sessions[idx].title;
+      sessions[idx].resultData = {
+        title: pTitle,
+        caption: document.getElementById('aiCaption')?.textContent || '',
+        hashtags: document.getElementById('aiHashtags')?.textContent || '',
+        google_flow_prompt: document.getElementById('aiGoogleFlowPrompt')?.textContent || '',
+        storyboard_url: aiImgStoryboard?.src || '',
+        cover_url: aiImgCover?.src || ''
+      };
+      if (pTitle && pTitle !== '-' && !sessions[idx].title.includes(pTitle)) {
+        sessions[idx].title = pTitle;
+      }
+    }
+
+    saveSessionsToStorage(sessions);
+    renderSessionsUI();
+  }
+
+  // Create a new session
+  function createNewChatSession(customTitle) {
+    snapshotActiveSession();
+
+    const sessions = getSavedSessions();
+    const newId = 'session_' + Date.now();
+    const title = customTitle || `แชทสินค้า #${sessions.length + 1}`;
+
+    const newSession = {
+      id: newId,
+      title: title,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      files: [],
+      promptText: DEFAULT_AFFILIATE_PROMPT,
+      resultData: null
+    };
+
+    sessions.unshift(newSession);
+    saveSessionsToStorage(sessions);
+
+    loadSession(newSession.id, true);
+    showToast(`✓ เริ่มแชทสินค้าใหม่: "${title}"`, 'success');
+  }
+
+  // Load a session by ID
+  function loadSession(sessionId, isNew = false) {
+    const sessions = getSavedSessions();
+    const session = sessions.find(s => s.id === sessionId);
+    if (!session) return;
+
+    currentActiveSessionId = session.id;
+    localStorage.setItem(ACTIVE_SESSION_STORAGE_KEY, session.id);
+
+    // Update banner titles
+    if (currentChatNameDisplay) currentChatNameDisplay.textContent = session.title;
+    if (activeBarTitle) activeBarTitle.textContent = session.title;
+
+    // Restore prompt
+    if (promptInput) {
+      promptInput.value = session.promptText || DEFAULT_AFFILIATE_PROMPT;
+      charCounter.textContent = `${promptInput.value.length.toLocaleString()} / 4,000`;
+      btnClearPrompt.style.display = promptInput.value ? 'inline-block' : 'none';
+      updatePayloadSummary();
+    }
+
+    // Restore files
+    selectedFiles = [];
+    if (session.files && session.files.length > 0) {
+      session.files.forEach(sf => {
+        const fileObj = dataURLtoFile(sf.dataUrl, sf.name);
+        selectedFiles.push({
+          id: sf.id || ('img_' + Date.now()),
+          name: sf.name,
+          size: sf.size || 0,
+          dataUrl: sf.dataUrl,
+          file: fileObj
+        });
+      });
+    }
+    renderGallery();
+
+    // Restore results
+    if (session.resultData && session.resultData.title && session.resultData.title !== '-') {
+      const res = session.resultData;
+      if (document.getElementById('displayRecordId')) {
+        document.getElementById('displayRecordId').textContent = `ID: ${session.id.substring(0, 8)}...`;
+      }
+      if (aiImgStoryboard && res.storyboard_url) aiImgStoryboard.src = res.storyboard_url;
+      if (aiImgCover && res.cover_url) aiImgCover.src = res.cover_url;
+      if (document.getElementById('aiProductTitle')) document.getElementById('aiProductTitle').textContent = res.title || '-';
+      if (document.getElementById('aiCaption')) document.getElementById('aiCaption').textContent = res.caption || '-';
+      if (document.getElementById('aiHashtags')) document.getElementById('aiHashtags').textContent = res.hashtags || '-';
+      if (document.getElementById('aiGoogleFlowPrompt')) document.getElementById('aiGoogleFlowPrompt').textContent = res.google_flow_prompt || '-';
+
+      if (resultsSection) {
+        resultsSection.style.display = 'block';
+      }
+    } else {
+      if (resultsSection) resultsSection.style.display = 'none';
+    }
+
+    renderSessionsUI();
+    if (!isNew) {
+      showToast(`สลับมาที่แชท: "${session.title}"`, 'info');
+    }
+  }
+
+  // Delete a specific session
+  function deleteChatSession(sessionId) {
+    let sessions = getSavedSessions();
+    sessions = sessions.filter(s => s.id !== sessionId);
+    saveSessionsToStorage(sessions);
+
+    if (currentActiveSessionId === sessionId) {
+      if (sessions.length > 0) {
+        loadSession(sessions[0].id);
+      } else {
+        createNewChatSession('แชทสินค้าเริ่มต้น');
+      }
+    } else {
+      renderSessionsUI();
+    }
+    showToast('ลบแชทสินค้าแล้ว', 'info');
+  }
+
+  // Rename current active chat
+  function renameActiveChat() {
+    const sessions = getSavedSessions();
+    const session = sessions.find(s => s.id === currentActiveSessionId);
+    if (!session) return;
+
+    const newTitle = prompt('ตั้งชื่อแชทสินค้านี้ใหม่:', session.title);
+    if (newTitle && newTitle.trim()) {
+      session.title = newTitle.trim();
+      session.updated_at = new Date().toISOString();
+      saveSessionsToStorage(sessions);
+      if (currentChatNameDisplay) currentChatNameDisplay.textContent = session.title;
+      if (activeBarTitle) activeBarTitle.textContent = session.title;
+      renderSessionsUI();
+      showToast(`เปลี่ยนชื่อเป็น "${session.title}" เรียบร้อย`);
+    }
+  }
+
+  // Render the sessions in the sidebar
+  function renderSessionsUI() {
+    const sessions = getSavedSessions();
+
+    if (chatCountBadge) chatCountBadge.textContent = sessions.length;
+    if (chatBadgePill) chatBadgePill.textContent = sessions.length;
+    if (chatTotalCountText) chatTotalCountText.textContent = `ทั้งหมด ${sessions.length} แชท`;
+
+    if (!chatSessionsList) return;
+    chatSessionsList.innerHTML = '';
+
+    if (sessions.length === 0) {
+      if (chatSessionsEmpty) chatSessionsEmpty.style.display = 'block';
+      return;
+    }
+    if (chatSessionsEmpty) chatSessionsEmpty.style.display = 'none';
+
+    sessions.forEach(sess => {
+      const itemEl = document.createElement('div');
+      itemEl.className = `chat-session-item ${sess.id === currentActiveSessionId ? 'active' : ''}`;
+
+      // Thumbnail
+      let thumbHtml = '<div class="chat-session-thumb">📦</div>';
+      if (sess.files && sess.files[0] && sess.files[0].dataUrl) {
+        thumbHtml = `<img src="${sess.files[0].dataUrl}" class="chat-session-thumb" alt="Product">`;
+      } else if (sess.resultData && sess.resultData.cover_url) {
+        thumbHtml = `<img src="${sess.resultData.cover_url}" class="chat-session-thumb" alt="Cover">`;
+      }
+
+      const dateStr = sess.created_at ? formatDate(sess.created_at) : 'ล่าสุด';
+      const fileCountText = sess.files && sess.files.length > 0 ? `${sess.files.length} รูป` : 'ไม่มีรูป';
+
+      itemEl.innerHTML = `
+        ${thumbHtml}
+        <div class="chat-session-content">
+          <div class="chat-session-title" title="${sess.title}">${sess.title}</div>
+          <div class="chat-session-meta">
+            <span>${dateStr}</span>
+            <span>•</span>
+            <span>${fileCountText}</span>
+          </div>
+        </div>
+        <button type="button" class="chat-session-delete" title="ลบแชทนี้">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+        </button>
+      `;
+
+      itemEl.addEventListener('click', (e) => {
+        if (e.target.closest('.chat-session-delete')) return;
+        snapshotActiveSession();
+        loadSession(sess.id);
+        if (window.innerWidth < 768) closeChatSidebar();
+      });
+
+      const delBtn = itemEl.querySelector('.chat-session-delete');
+      if (delBtn) {
+        delBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          deleteChatSession(sess.id);
+        });
+      }
+
+      chatSessionsList.appendChild(itemEl);
     });
   }
+
+  // Sync result with active session
+  function syncResultWithActiveSession(resultItem) {
+    if (!currentActiveSessionId) return;
+    const sessions = getSavedSessions();
+    const sIdx = sessions.findIndex(s => s.id === currentActiveSessionId);
+    if (sIdx !== -1) {
+      if (resultItem.title && resultItem.title !== '-') {
+        sessions[sIdx].title = resultItem.title;
+      }
+      sessions[sIdx].resultData = resultItem;
+      sessions[sIdx].updated_at = new Date().toISOString();
+      saveSessionsToStorage(sessions);
+      if (currentChatNameDisplay) currentChatNameDisplay.textContent = sessions[sIdx].title;
+      if (activeBarTitle) activeBarTitle.textContent = sessions[sIdx].title;
+      renderSessionsUI();
+    }
+  }
+
+  // Initialize Sessions on startup
+  function initChatSessions() {
+    let sessions = getSavedSessions();
+    if (sessions.length === 0) {
+      const defaultSession = {
+        id: 'session_' + Date.now(),
+        title: 'แชทสินค้าใหม่',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        files: [],
+        promptText: DEFAULT_AFFILIATE_PROMPT,
+        resultData: null
+      };
+      sessions.push(defaultSession);
+      saveSessionsToStorage(sessions);
+    }
+
+    const savedActiveId = localStorage.getItem(ACTIVE_SESSION_STORAGE_KEY);
+    const targetSession = sessions.find(s => s.id === savedActiveId) || sessions[0];
+    loadSession(targetSession.id, true);
+  }
+
+  // Event Listeners for Sidebar
+  if (btnToggleChatSidebar) {
+    btnToggleChatSidebar.addEventListener('click', () => {
+      if (chatSidebar.classList.contains('open')) {
+        closeChatSidebar();
+      } else {
+        openChatSidebar();
+      }
+    });
+  }
+  if (btnCloseSidebar) btnCloseSidebar.addEventListener('click', closeChatSidebar);
+  if (chatSidebarBackdrop) chatSidebarBackdrop.addEventListener('click', closeChatSidebar);
+
+  if (btnNewChat) {
+    btnNewChat.addEventListener('click', () => {
+      createNewChatSession();
+      if (window.innerWidth < 768) closeChatSidebar();
+    });
+  }
+  if (btnInlineNewChat) {
+    btnInlineNewChat.addEventListener('click', () => {
+      createNewChatSession();
+    });
+  }
+  if (btnRenameCurrentChat) {
+    btnRenameCurrentChat.addEventListener('click', renameActiveChat);
+  }
+  if (btnClearAllChats) {
+    btnClearAllChats.addEventListener('click', () => {
+      if (confirm('คุณต้องการลบประวัติแชทสินค้าทั้งหมดใช่หรือไม่?')) {
+        localStorage.removeItem(SESSIONS_STORAGE_KEY);
+        localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
+        initChatSessions();
+        showToast('ล้างประวัติแชททั้งหมดแล้ว', 'info');
+      }
+    });
+  }
+
+  // Auto-snapshot when typing in prompt
+  if (promptInput) {
+    promptInput.addEventListener('input', () => {
+      clearTimeout(window._promptSaveTimeout);
+      window._promptSaveTimeout = setTimeout(snapshotActiveSession, 1200);
+    });
+  }
+
+  // Start Sessions Manager
+  initChatSessions();
 });
 

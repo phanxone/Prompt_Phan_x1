@@ -96,6 +96,11 @@
       </div>
 
       <div class="header-actions">
+        <button type="button" class="btn-chat-sidebar-toggle" id="btnToggleChatSidebar" title="เปิด/ปิด รายการแชทสินค้า">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          <span>แชทสินค้า</span>
+          <span class="chat-count-badge" id="chatCountBadge">1</span>
+        </button>
         <button type="button" class="btn-vault" id="btnOpenVault" title="เปิดคลังเก็บของและประวัติการเจ็น">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>
           <span>หอจดหมายเหตุ</span>
@@ -118,6 +123,23 @@
         <h2 class="hero-title">สร้างโลกของคุณให้มีชีวิต</h2>
         <p class="hero-description">นำภาพ แรงบันดาลใจ และถ้อยคำของคุณมาร่ายมนตร์ให้กลายเป็นผลงานใหม่ใน UPlord</p>
       </section>
+
+      <!-- Active Chat Session Indicator Bar -->
+      <div class="session-active-bar" id="sessionActiveBar">
+        <div class="session-active-info">
+          <span class="session-status-dot"></span>
+          <span class="session-info-label">กำลังคุยสินค้า:</span>
+          <strong class="session-info-title" id="activeBarTitle">แชทสินค้าใหม่</strong>
+        </div>
+        <div class="session-active-actions">
+          <button type="button" class="btn-session-action btn-session-rename" id="btnRenameCurrentChat" title="เปลี่ยนชื่อแชทสินค้านี้">
+            ✏️ เปลี่ยนชื่อ
+          </button>
+          <button type="button" class="btn-session-action btn-session-new" id="btnInlineNewChat" title="เริ่มแชทสินค้าใหม่">
+            + แชทใหม่
+          </button>
+        </div>
+      </div>
 
       <!-- Command Center Card -->
       <section class="command-card glass-panel" id="commandPanel">
@@ -642,6 +664,62 @@
       <img id="modalImg" src="" alt="ภาพขนาดเต็ม">
     </div>
   </div>
+
+  <!-- Chat Sessions Sidebar (ChatGPT / Claude Style) -->
+  <div class="chat-sidebar-backdrop" id="chatSidebarBackdrop" style="display: none;"></div>
+  <aside class="chat-sidebar" id="chatSidebar" aria-label="แถบแชทสินค้า">
+    <div class="chat-sidebar-header">
+      <div class="chat-sidebar-brand">
+        <div class="chat-sidebar-brand-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        </div>
+        <div class="chat-sidebar-brand-text">
+          <span class="chat-sidebar-title">แชทสินค้า</span>
+          <span class="chat-sidebar-subtitle">Product Memory Sessions</span>
+        </div>
+      </div>
+      <button type="button" class="btn-close-sidebar" id="btnCloseSidebar" title="ปิดแถบข้าง" aria-label="ปิดแถบข้าง">✕</button>
+    </div>
+
+    <!-- New Chat Primary Action Button -->
+    <div class="chat-sidebar-actions">
+      <button type="button" class="btn-new-chat-primary" id="btnNewChat">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <span>+ เริ่มแชทสินค้าใหม่</span>
+      </button>
+    </div>
+
+    <!-- Active Session Callout -->
+    <div class="chat-current-banner">
+      <div class="chat-current-indicator"></div>
+      <div class="chat-current-info">
+        <span class="chat-current-label">ห้องที่กำลังทำงานอยู่:</span>
+        <span class="chat-current-name" id="currentChatNameDisplay">แชทสินค้าใหม่</span>
+      </div>
+    </div>
+
+    <!-- Sessions List -->
+    <div class="chat-sessions-container">
+      <div class="chat-sessions-heading-row">
+        <span class="chat-sessions-heading">ประวัติแชทสินค้าที่จำไว้</span>
+        <span class="chat-badge-pill" id="chatBadgePill">1</span>
+      </div>
+      <div class="chat-sessions-list" id="chatSessionsList">
+        <!-- Dynamic Chat Items -->
+      </div>
+      <div class="chat-sessions-empty" id="chatSessionsEmpty" style="display: none;">
+        <span class="empty-icon">💬</span>
+        <p>ยังไม่มีประวัติแชทสินค้า</p>
+        <span class="empty-sub">กด "+ เริ่มแชทสินค้าใหม่" ด้านบนเพื่อเริ่ม</span>
+      </div>
+    </div>
+
+    <!-- Sidebar Footer -->
+    <div class="chat-sidebar-footer">
+      <span class="chat-footer-stat" id="chatTotalCountText">ทั้งหมด 1 แชท</span>
+      <button type="button" class="btn-clear-chats" id="btnClearAllChats" title="ล้างประวัติแชททั้งหมด">ล้างประวัติ</button>
+    </div>
+  </aside>
 
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toastContainer" aria-live="polite"></div>
