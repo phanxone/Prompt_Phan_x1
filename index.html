@@ -289,6 +289,41 @@
           </div>
         </div>
 
+        <!-- Section 2.5: Image Generation Mode Selector -->
+        <div class="card-section mode-select-section">
+          <div class="section-label-row">
+            <span class="section-badge">🖼️</span>
+            <label class="section-title">รูปแบบภาพที่ต้องการสร้าง</label>
+            <span class="section-hint">(เลือกได้ว่าต้องการให้ตรงกับภาพจริง 100% หรือให้ AI วาดใหม่)</span>
+          </div>
+
+          <div class="render-mode-grid">
+            <label class="mode-card active" id="labelModeReal">
+              <input type="radio" name="imageMode" id="modeRealProduct" value="real" checked>
+              <div class="mode-card-content">
+                <div class="mode-header">
+                  <span class="mode-badge-tag">แนะนำ • ตรงปก 100%</span>
+                  <span class="mode-radio-dot"></span>
+                </div>
+                <div class="mode-title">🎯 สินค้าจริงตรงปก 100% (Product Studio Mockup)</div>
+                <div class="mode-desc">นำภาพถ่ายสินค้าจริงของคุณมาจัดสตอรีบอร์ด 6 ช่อง และเรนเดอร์ปก TikTok 9:16 ลายสกรีน โลโก้ และสีเสื้อจะเหมือนของจริงทุกประการ</div>
+              </div>
+            </label>
+
+            <label class="mode-card" id="labelModeAi">
+              <input type="radio" name="imageMode" id="modeAiGen" value="ai">
+              <div class="mode-card-content">
+                <div class="mode-header">
+                  <span class="mode-badge-tag mode-tag-ai">Creative AI Art</span>
+                  <span class="mode-radio-dot"></span>
+                </div>
+                <div class="mode-title">🎨 AI วาดภาพขึ้นใหม่ (AI Re-imagined)</div>
+                <div class="mode-desc">ให้โมเดล AI วาดภาพใหม่ทั้งหมดจากคำบรรยาย (ลวดลายและฟอนต์อาจแตกต่างจากของจริง)</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
         <!-- Section 3: Action Buttons -->
         <div class="action-footer">
           <div class="footer-left">

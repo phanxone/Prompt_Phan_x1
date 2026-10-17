@@ -619,6 +619,25 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('รีเซ็ตแบบฟอร์มเป็นค่าว่างเรียบร้อย');
   });
 
+  // --- Mode Selector Event Listeners ---
+  const modeRealProduct = document.getElementById('modeRealProduct');
+  const modeAiGen = document.getElementById('modeAiGen');
+  const labelModeReal = document.getElementById('labelModeReal');
+  const labelModeAi = document.getElementById('labelModeAi');
+
+  function updateModeCardStyles() {
+    if (modeRealProduct && modeRealProduct.checked) {
+      if (labelModeReal) labelModeReal.classList.add('active');
+      if (labelModeAi) labelModeAi.classList.remove('active');
+    } else if (modeAiGen && modeAiGen.checked) {
+      if (labelModeAi) labelModeAi.classList.add('active');
+      if (labelModeReal) labelModeReal.classList.remove('active');
+    }
+  }
+
+  if (modeRealProduct) modeRealProduct.addEventListener('change', updateModeCardStyles);
+  if (modeAiGen) modeAiGen.addEventListener('change', updateModeCardStyles);
+
   // --- Direct Image Generation via OpenAI API from Client ---
   async function generateOpenAiImageDirect(apiKey, promptText, filenamePrefix = 'ai_image') {
     try {
@@ -667,6 +686,475 @@ document.addEventListener('DOMContentLoaded', () => {
       return directUrl;
     } catch (e) {
       console.error('generateOpenAiImageDirect exception:', e);
+      return null;
+    }
+  }
+
+  // --- Helper: Load an image source into an HTMLImageElement ---
+  function loadImageElement(src) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = () => {
+        // Fallback retry without crossOrigin if tainted
+        const img2 = new Image();
+        img2.onload = () => resolve(img2);
+        img2.onerror = (err) => reject(err);
+        img2.src = src;
+      };
+      img.src = src;
+    });
+  }
+
+  // --- Helper: Draw rounded rectangle on canvas ---
+  function drawRoundedRect(ctx, x, y, width, height, radius) {
+    if (ctx.roundRect) {
+      ctx.beginPath();
+      ctx.roundRect(x, y, width, height, radius);
+      return;
+    }
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.arcTo(x + width, y, x + width, y + radius, radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.arcTo(x + width, y + height, x + width - radius, y + height, radius);
+    ctx.lineTo(x + radius, y + height);
+    ctx.arcTo(x, y + height, x, y + height - radius, radius);
+    ctx.lineTo(x, y + radius);
+    ctx.arcTo(x, y, x + radius, y, radius);
+    ctx.closePath();
+  }
+
+  // --- Helper: Draw image with proportional containment or center crop zoom ---
+  function drawImageProp(ctx, img, x, y, w, h, zoom = 1, offsetYRatio = 0) {
+    const iw = img.naturalWidth || img.width || 800;
+    const ih = img.naturalHeight || img.height || 800;
+
+    if (zoom <= 1) {
+      // Contain mode with comfortable padding
+      const scale = Math.min((w * 0.90) / iw, (h * 0.90) / ih);
+      const nw = iw * scale;
+      const nh = ih * scale;
+      const nx = x + (w - nw) / 2;
+      const ny = y + (h - nh) / 2;
+      ctx.drawImage(img, nx, ny, nw, nh);
+    } else {
+      // Zoom into central graphic / print area
+      const sw = iw / zoom;
+      const sh = ih / zoom;
+      const sx = Math.max(0, (iw - sw) / 2);
+      const sy = Math.max(0, Math.min(ih - sh, (ih - sh) / 2 + (offsetYRatio * ih)));
+      ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+    }
+  }
+
+  // --- High-Resolution Real Product Storyboard Collage (1800 x 1200 px - 3:2) ---
+  async function renderRealProductStoryboard(imageUrls, title = 'ชุดคอนเทนต์สินค้า') {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1800;
+      canvas.height = 1200;
+      const ctx = canvas.getContext('2d');
+
+      // 1. Studio Backdrop Gradient
+      const bgGrad = ctx.createLinearGradient(0, 0, 1800, 1200);
+      bgGrad.addColorStop(0, '#160912');
+      bgGrad.addColorStop(0.5, '#220e1e');
+      bgGrad.addColorStop(1, '#0e040b');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, 1800, 1200);
+
+      // Ambient studio spotlight
+      const spot1 = ctx.createRadialGradient(900, 600, 100, 900, 600, 900);
+      spot1.addColorStop(0, 'rgba(244, 63, 94, 0.14)');
+      spot1.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = spot1;
+      ctx.fillRect(0, 0, 1800, 1200);
+
+      // Preload available images
+      const loadedImgs = [];
+      for (let u of imageUrls) {
+        try {
+          const img = await loadImageElement(u);
+          loadedImgs.push(img);
+        } catch (err) {
+          console.warn('Image load notice:', err);
+        }
+      }
+
+      if (loadedImgs.length === 0) return null;
+
+      // 6 Grid Panels (3 cols x 2 rows)
+      const padX = 35;
+      const padY = 55;
+      const gapX = 22;
+      const gapY = 22;
+      const cols = 3;
+      const rows = 2;
+      const cellW = (1800 - (padX * 2) - (gapX * (cols - 1))) / cols; // ~562px
+      const cellH = (1200 - (padY * 2) - (gapY * (rows - 1))) / rows; // ~523px
+
+      const sceneSpecs = [
+        { num: '01', title: 'แกะกล่องสินค้า Unboxing', zoom: 1, imgIdx: 0, offY: 0 },
+        { num: '02', title: 'ซูมลายสกรีน & โลโก้จริง', zoom: 2.1, imgIdx: 0, offY: -0.05 },
+        { num: '03', title: 'โชว์ทรงเสื้อ & กางเกงจริง', zoom: 1, imgIdx: (loadedImgs.length > 1 ? 1 : 0), offY: 0 },
+        { num: '04', title: 'ดีเทลเนื้อผ้า & สีไล่เฉด', zoom: 2.8, imgIdx: 0, offY: 0.05 },
+        { num: '05', title: 'ตรวจเช็คคุณภาพการตัดเย็บ', zoom: 1.8, imgIdx: (loadedImgs.length > 1 ? 1 : 0), offY: -0.1 },
+        { num: '06', title: 'จัดเซ็ตสินค้าสมบูรณ์ 100%', zoom: 1, imgIdx: 0, offY: 0 }
+      ];
+
+      sceneSpecs.forEach((spec, idx) => {
+        const c = idx % cols;
+        const r = Math.floor(idx / cols);
+        const x = padX + c * (cellW + gapX);
+        const y = padY + r * (cellH + gapY);
+
+        // Container Clip
+        ctx.save();
+        drawRoundedRect(ctx, x, y, cellW, cellH, 16);
+        ctx.clip();
+
+        // Inner Card Gradient
+        const cardBg = ctx.createLinearGradient(x, y, x, y + cellH);
+        cardBg.addColorStop(0, '#200d1b');
+        cardBg.addColorStop(1, '#11050e');
+        ctx.fillStyle = cardBg;
+        ctx.fillRect(x, y, cellW, cellH);
+
+        // Radial lighting in cell
+        const cSpot = ctx.createRadialGradient(x + cellW / 2, y + cellH / 2, 20, x + cellW / 2, y + cellH / 2, cellW * 0.6);
+        cSpot.addColorStop(0, 'rgba(255, 255, 255, 0.08)');
+        cSpot.addColorStop(1, 'rgba(0, 0, 0, 0.45)');
+        ctx.fillStyle = cSpot;
+        ctx.fillRect(x, y, cellW, cellH);
+
+        // Draw Real Product Image
+        const targetImg = loadedImgs[spec.imgIdx % loadedImgs.length];
+        if (targetImg) {
+          drawImageProp(ctx, targetImg, x, y, cellW, cellH, spec.zoom, spec.offY);
+        }
+
+        // Bottom vignette shadow
+        const vig = ctx.createLinearGradient(x, y + cellH - 70, x, y + cellH);
+        vig.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        vig.addColorStop(1, 'rgba(0, 0, 0, 0.85)');
+        ctx.fillStyle = vig;
+        ctx.fillRect(x, y + cellH - 70, cellW, 70);
+
+        ctx.restore();
+
+        // Card Border
+        ctx.save();
+        drawRoundedRect(ctx, x, y, cellW, cellH, 16);
+        ctx.strokeStyle = 'rgba(251, 113, 133, 0.32)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+
+        // Scene Badge Top-Left
+        ctx.save();
+        const badgeW = 230;
+        const badgeH = 34;
+        const bx = x + 16;
+        const by = y + 16;
+
+        drawRoundedRect(ctx, bx, by, badgeW, badgeH, 17);
+        ctx.fillStyle = 'rgba(12, 4, 9, 0.88)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(251, 113, 133, 0.5)';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        // Neon dot
+        ctx.beginPath();
+        ctx.arc(bx + 16, by + 17, 4.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#10b981';
+        ctx.shadowColor = '#10b981';
+        ctx.shadowBlur = 8;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Badge Text
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 14px -apple-system, BlinkMacSystemFont, "Noto Sans Thai", sans-serif';
+        ctx.fillText(`SCENE ${spec.num} • ${spec.title.split(' ')[0]}`, bx + 30, by + 22);
+        ctx.restore();
+      });
+
+      // Top Header Banner
+      ctx.save();
+      ctx.fillStyle = 'rgba(254, 205, 211, 0.9)';
+      ctx.font = '700 16px -apple-system, BlinkMacSystemFont, "Noto Sans Thai", sans-serif';
+      ctx.fillText(`★ TIKTOK E-COMMERCE REVIEW STORYBOARD • REAL PRODUCT ACCURACY 100%`, padX + 8, 32);
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+      ctx.textAlign = 'right';
+      ctx.fillText(title, 1800 - padX - 8, 32);
+      ctx.restore();
+
+      // Convert to Blob and Upload to Supabase Storage
+      return new Promise((resolve) => {
+        canvas.toBlob(async (blob) => {
+          if (!blob || !supabase) {
+            resolve(canvas.toDataURL('image/jpeg', 0.92));
+            return;
+          }
+
+          const storagePath = `real_storyboard_${Date.now()}_${Math.floor(Math.random() * 10000)}.jpg`;
+          const { error: upErr } = await supabase.storage.from(CONFIG.SUPABASE_BUCKET || 'command-images').upload(storagePath, blob, {
+            contentType: 'image/jpeg',
+            upsert: true
+          });
+
+          if (!upErr) {
+            const { data: pData } = supabase.storage.from(CONFIG.SUPABASE_BUCKET || 'command-images').getPublicUrl(storagePath);
+            console.log('✓ อัปโหลดสตอรีบอร์ดสินค้าจริงเข้า Supabase สำเร็จ:', pData.publicUrl);
+            resolve(pData.publicUrl);
+          } else {
+            console.error('Upload storyboard error:', upErr);
+            resolve(canvas.toDataURL('image/jpeg', 0.92));
+          }
+        }, 'image/jpeg', 0.93);
+      });
+    } catch (err) {
+      console.error('renderRealProductStoryboard exception:', err);
+      return null;
+    }
+  }
+
+  // --- High-Resolution Real Product TikTok Cover (1080 x 1920 px - 9:16) ---
+  async function renderRealProductCover(imageUrls, title = 'ชุดคอนเทนต์สินค้า', caption = '', hashtags = '') {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1080;
+      canvas.height = 1920;
+      const ctx = canvas.getContext('2d');
+
+      // 1. Studio Gradient (9:16 Vertical)
+      const bgGrad = ctx.createLinearGradient(0, 0, 1080, 1920);
+      bgGrad.addColorStop(0, '#220b1b');
+      bgGrad.addColorStop(0.35, '#150611');
+      bgGrad.addColorStop(0.7, '#0d030b');
+      bgGrad.addColorStop(1, '#050104');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, 1080, 1920);
+
+      // Radial studio lighting behind product
+      const heroSpot = ctx.createRadialGradient(540, 880, 80, 540, 880, 750);
+      heroSpot.addColorStop(0, 'rgba(251, 113, 133, 0.22)');
+      heroSpot.addColorStop(0.6, 'rgba(225, 29, 72, 0.08)');
+      heroSpot.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = heroSpot;
+      ctx.fillRect(0, 0, 1080, 1920);
+
+      // Preload available images
+      const loadedImgs = [];
+      for (let u of imageUrls) {
+        try {
+          const img = await loadImageElement(u);
+          loadedImgs.push(img);
+        } catch (err) {
+          console.warn('Image load notice:', err);
+        }
+      }
+
+      if (loadedImgs.length === 0) return null;
+
+      // --- Header Section (y: 120 to 390) ---
+      // Safe-zone badge pill
+      ctx.save();
+      const badgeW = 440;
+      const badgeH = 50;
+      const bx = (1080 - badgeW) / 2;
+      const by = 130;
+      drawRoundedRect(ctx, bx, by, badgeW, badgeH, 25);
+      ctx.fillStyle = 'rgba(244, 63, 94, 0.22)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(251, 113, 133, 0.6)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.fillStyle = '#fecdd3';
+      ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, "Noto Sans Thai", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('🔥 รีวิวป้ายยา • สินค้าจริงตรงปก 100%', 540, by + 33);
+      ctx.restore();
+
+      // Catchy Title Text
+      ctx.save();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 56px -apple-system, BlinkMacSystemFont, "Noto Sans Thai", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+      ctx.shadowBlur = 25;
+      ctx.shadowOffsetY = 6;
+
+      const cleanTitle = (title || 'ชุดเซ็ตสปอร์ตชายสุดเท่').replace(/[#*]/g, '').trim();
+      if (cleanTitle.length > 20) {
+        const mid = Math.floor(cleanTitle.length / 2);
+        let splitIdx = cleanTitle.indexOf(' ', mid - 5);
+        if (splitIdx === -1) splitIdx = mid;
+        const line1 = cleanTitle.substring(0, splitIdx).trim();
+        const line2 = cleanTitle.substring(splitIdx).trim();
+        ctx.fillText(line1, 540, 240);
+        ctx.fillText(line2, 540, 310);
+      } else {
+        ctx.fillText(cleanTitle, 540, 260);
+      }
+      ctx.restore();
+
+      // Sub-hook Tagline
+      ctx.save();
+      ctx.fillStyle = '#fde047'; // Vibrant yellow
+      ctx.font = '600 26px -apple-system, BlinkMacSystemFont, "Noto Sans Thai", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+      ctx.shadowBlur = 10;
+      ctx.fillText('⚡ ดีไซน์สวย ใส่สบาย ลายสกรีนคมชัดตรงปก', 540, 375);
+      ctx.restore();
+
+      // --- Middle Hero Section (y: 430 to 1440) ---
+      // Soft shadow ellipse under product
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(540, 1370, 340, 45, 0, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+      ctx.filter = 'blur(16px)';
+      ctx.fill();
+      ctx.restore();
+
+      // Frame the primary real product image
+      const mainImg = loadedImgs[0];
+      if (mainImg) {
+        ctx.save();
+        const heroBoxX = 70;
+        const heroBoxY = 430;
+        const heroBoxW = 940;
+        const heroBoxH = 960;
+
+        drawRoundedRect(ctx, heroBoxX, heroBoxY, heroBoxW, heroBoxH, 28);
+        ctx.clip();
+
+        const innerGrad = ctx.createRadialGradient(540, 910, 50, 540, 910, 500);
+        innerGrad.addColorStop(0, 'rgba(255, 255, 255, 0.05)');
+        innerGrad.addColorStop(1, 'rgba(0, 0, 0, 0.25)');
+        ctx.fillStyle = innerGrad;
+        ctx.fillRect(heroBoxX, heroBoxY, heroBoxW, heroBoxH);
+
+        drawImageProp(ctx, mainImg, heroBoxX, heroBoxY, heroBoxW, heroBoxH, 1, 0);
+        ctx.restore();
+
+        // Outer border
+        ctx.save();
+        drawRoundedRect(ctx, heroBoxX, heroBoxY, heroBoxW, heroBoxH, 28);
+        ctx.strokeStyle = 'rgba(251, 113, 133, 0.35)';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Secondary image floating thumbnail (if uploaded)
+      if (loadedImgs.length > 1) {
+        const secImg = loadedImgs[1];
+        ctx.save();
+        const thumbX = 740;
+        const thumbY = 1120;
+        const thumbSize = 250;
+
+        drawRoundedRect(ctx, thumbX, thumbY, thumbSize, thumbSize, 20);
+        ctx.fillStyle = '#1e0c19';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+        ctx.shadowBlur = 24;
+        ctx.fill();
+        ctx.clip();
+
+        drawImageProp(ctx, secImg, thumbX, thumbY, thumbSize, thumbSize, 1, 0);
+        ctx.restore();
+
+        ctx.save();
+        drawRoundedRect(ctx, thumbX, thumbY, thumbSize, thumbSize, 20);
+        ctx.strokeStyle = '#f43f5e';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Mini tag on thumbnail
+        drawRoundedRect(ctx, thumbX + 10, thumbY + thumbSize - 36, thumbSize - 20, 26, 13);
+        ctx.fillStyle = 'rgba(12, 4, 9, 0.85)';
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "Noto Sans Thai", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('+ มุมมองเพิ่มเติม', thumbX + thumbSize / 2, thumbY + thumbSize - 18);
+        ctx.restore();
+      }
+
+      // --- Footer Section: TikTok Cart CTA (y: 1520 to 1840) ---
+      ctx.save();
+      const btnW = 860;
+      const btnH = 100;
+      const btnX = (1080 - btnW) / 2;
+      const btnY = 1530;
+
+      drawRoundedRect(ctx, btnX, btnY, btnW, btnH, 50);
+      const ctaGrad = ctx.createLinearGradient(btnX, btnY, btnX + btnW, btnY);
+      ctaGrad.addColorStop(0, '#f59e0b');
+      ctaGrad.addColorStop(0.5, '#f97316');
+      ctaGrad.addColorStop(1, '#ef4444');
+      ctx.fillStyle = ctaGrad;
+      ctx.shadowColor = 'rgba(249, 115, 22, 0.55)';
+      ctx.shadowBlur = 30;
+      ctx.shadowOffsetY = 8;
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 38px -apple-system, BlinkMacSystemFont, "Noto Sans Thai", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+      ctx.shadowBlur = 8;
+      ctx.fillText('🛒 จิ้มดูสินค้าที่ตะกร้าส้มมุมล่างซ้ายเลย!', 540, btnY + 63);
+      ctx.restore();
+
+      // Hashtags row
+      ctx.save();
+      ctx.fillStyle = '#fda4af';
+      ctx.font = '500 24px -apple-system, BlinkMacSystemFont, "Noto Sans Thai", sans-serif';
+      ctx.textAlign = 'center';
+      const tagText = hashtags ? hashtags.split(' ').slice(0, 4).join('  ') : '#รีวิวสินค้า  #TikTokป้ายยา  #พิกัดในตะกร้า  #ของแท้ตรงปก';
+      ctx.fillText(tagText, 540, 1690);
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.font = '400 18px -apple-system, BlinkMacSystemFont, "Noto Sans Thai", sans-serif';
+      ctx.fillText('TikTok Affiliate Review • Creator Quality Studio', 540, 1740);
+      ctx.restore();
+
+      // Convert to Blob and Upload to Supabase Storage
+      return new Promise((resolve) => {
+        canvas.toBlob(async (blob) => {
+          if (!blob || !supabase) {
+            resolve(canvas.toDataURL('image/jpeg', 0.92));
+            return;
+          }
+
+          const storagePath = `real_cover_${Date.now()}_${Math.floor(Math.random() * 10000)}.jpg`;
+          const { error: upErr } = await supabase.storage.from(CONFIG.SUPABASE_BUCKET || 'command-images').upload(storagePath, blob, {
+            contentType: 'image/jpeg',
+            upsert: true
+          });
+
+          if (!upErr) {
+            const { data: pData } = supabase.storage.from(CONFIG.SUPABASE_BUCKET || 'command-images').getPublicUrl(storagePath);
+            console.log('✓ อัปโหลดปกสินค้าจริงเข้า Supabase สำเร็จ:', pData.publicUrl);
+            resolve(pData.publicUrl);
+          } else {
+            console.error('Upload cover error:', upErr);
+            resolve(canvas.toDataURL('image/jpeg', 0.92));
+          }
+        }, 'image/jpeg', 0.93);
+      });
+    } catch (err) {
+      console.error('renderRealProductCover exception:', err);
       return null;
     }
   }
@@ -739,21 +1227,40 @@ document.addEventListener('DOMContentLoaded', () => {
     const visual_description = parsed.visual_description || title;
     const google_flow_prompt = parsed.google_flow_prompt || '';
 
-    // สร้าง Prompt วาดรูปที่ยึดติดกับตัวสินค้าจริงแบบ 100% ไม่ปล่อยให้โมเดล AI มั่วหมวดเด็ดขาด!
-    const finalStoryboardPrompt = `Commercial e-commerce review 6-panel photo storyboard collage. The EXACT product featured consistently across all 6 panels is: ${visual_description}. Panel 1: unboxing the package on a clean studio table. Panel 2: close-up macro shot showing fabric texture, stitch details, prints and gradient colors. Panel 3: demonstration of the product fit, styling, and comfort. Panel 4: close-up detailing the graphics, logos and distinctive design. Panel 5: demonstration of features, elasticity or durability. Panel 6: final hero flat-lay display with matching accessories under bright clean studio lights. Realistic commercial product photography, sharp focus, no human faces, only hands holding or demonstrating.`;
+    // ตรวจสอบโหมดสร้างภาพ (สินค้าจริงตรงปก 100% หรือ AI วาดใหม่)
+    const isRealProductMode = !document.getElementById('modeAiGen')?.checked;
+    let storyboard_url = '';
+    let cover_url = '';
 
-    const finalCoverPrompt = `Vertical 9:16 high-end commercial hero photo for TikTok video cover featuring the EXACT product: ${visual_description}. Displayed in a trendy aesthetic modern studio setting with cinematic commercial lighting, subtle highlights, accurate vibrant product colors, clean elegant background, sharp 8k focus product hero shoot, no human faces.`;
+    if (isRealProductMode && uploadedImageUrls && uploadedImageUrls.length > 0) {
+      console.log('🎯 ทำงานในโหมด: สินค้าจริงตรงปก 100% (Product Studio Mockup)');
 
-    // 2. เจนภาพสตอรีบอร์ด 6 ซีน ด้วย AI
-    updateLoadingProgress(70, 'สร้างสตอรีบอร์ด 6 ซีน', 'AI กำลังเรนเดอร์ภาพสตอรีบอร์ดรวม 6 ซีนตามสินค้าจริง...', 2);
-    let storyboard_url = await generateOpenAiImageDirect(apiKey, finalStoryboardPrompt, 'ai_storyboard');
+      // 2. สร้างภาพสตอรีบอร์ด 6 ช่อง จากรูปสินค้าจริง
+      updateLoadingProgress(70, 'สร้างสตอรีบอร์ดสินค้าจริง 100%', 'กำลังจัดวางภาพสินค้าจริงลงในสตอรีบอร์ด 6 ช่อง คมชัดตรงปก...', 2);
+      storyboard_url = await renderRealProductStoryboard(uploadedImageUrls, title);
+
+      // 3. สร้างภาพปก TikTok 9:16 จากรูปสินค้าจริง
+      updateLoadingProgress(88, 'สร้างปก TikTok สินค้าจริง 100%', 'กำลังประกอบภาพปก TikTok 9:16 ด้วยรูปสินค้าจริงและพาดหัว...', 3);
+      cover_url = await renderRealProductCover(uploadedImageUrls, title, caption, hashtags);
+    } else {
+      console.log('🎨 ทำงานในโหมด: AI วาดภาพขึ้นใหม่ (Creative AI Art)');
+
+      const finalStoryboardPrompt = `Commercial e-commerce review 6-panel photo storyboard collage. The EXACT product featured consistently across all 6 panels is: ${visual_description}. Panel 1: unboxing the package on a clean studio table. Panel 2: close-up macro shot showing fabric texture, stitch details, prints and gradient colors. Panel 3: demonstration of the product fit, styling, and comfort. Panel 4: close-up detailing the graphics, logos and distinctive design. Panel 5: demonstration of features, elasticity or durability. Panel 6: final hero flat-lay display with matching accessories under bright clean studio lights. Realistic commercial product photography, sharp focus, no human faces, only hands holding or demonstrating.`;
+
+      const finalCoverPrompt = `Vertical 9:16 high-end commercial hero photo for TikTok video cover featuring the EXACT product: ${visual_description}. Displayed in a trendy aesthetic modern studio setting with cinematic commercial lighting, subtle highlights, accurate vibrant product colors, clean elegant background, sharp 8k focus product hero shoot, no human faces.`;
+
+      // 2. เจนภาพสตอรีบอร์ด 6 ซีน ด้วย AI
+      updateLoadingProgress(70, 'สร้างสตอรีบอร์ด 6 ซีน (AI Art)', 'AI กำลังเรนเดอร์ภาพสตอรีบอร์ดรวม 6 ซีนตามสินค้าจริง...', 2);
+      storyboard_url = await generateOpenAiImageDirect(apiKey, finalStoryboardPrompt, 'ai_storyboard');
+
+      // 3. เจนภาพปกคลิป TikTok 9:16 ด้วย AI
+      updateLoadingProgress(88, 'สร้างภาพปก TikTok 9:16 (AI Art)', 'AI กำลังเรนเดอร์ภาพปกแนวตั้ง 9:16 ให้สะดุดตา...', 3);
+      cover_url = await generateOpenAiImageDirect(apiKey, finalCoverPrompt, 'ai_cover');
+    }
+
     if (!storyboard_url) {
       storyboard_url = (uploadedImageUrls && uploadedImageUrls[0]) || '';
     }
-
-    // 3. เจนภาพปกคลิป TikTok 9:16 ด้วย AI
-    updateLoadingProgress(88, 'สร้างภาพปก TikTok 9:16', 'AI กำลังเรนเดอร์ภาพปกแนวตั้ง 9:16 ให้สะดุดตา...', 3);
-    let cover_url = await generateOpenAiImageDirect(apiKey, finalCoverPrompt, 'ai_cover');
     if (!cover_url) {
       cover_url = (uploadedImageUrls && (uploadedImageUrls[1] || uploadedImageUrls[0])) || '';
     }
