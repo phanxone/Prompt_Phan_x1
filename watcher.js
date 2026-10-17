@@ -5,6 +5,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import http from 'http';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -33,6 +34,25 @@ try {
 } catch (e) {
   // ใช้งานค่าเริ่มต้น
 }
+
+if (OPENAI_API_KEY) OPENAI_API_KEY = OPENAI_API_KEY.trim();
+if (SUPABASE_URL) SUPABASE_URL = SUPABASE_URL.trim();
+if (SUPABASE_ANON_KEY) SUPABASE_ANON_KEY = SUPABASE_ANON_KEY.trim();
+
+// Railway Health Check HTTP Server (ป้องกัน Railway ปิดคอนเทนเนอร์)
+const PORT = process.env.PORT || 8080;
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ 
+    status: 'online', 
+    service: 'VisionPrompt Studio Watcher', 
+    ai_connected: !!OPENAI_API_KEY,
+    time: new Date().toISOString() 
+  }));
+});
+server.listen(PORT, () => {
+  console.log(`🌐 Railway Web & Health-Check Service พร้อมบน Port: ${PORT}`);
+});
 
 const HEADERS = {
   'apikey': SUPABASE_ANON_KEY,
