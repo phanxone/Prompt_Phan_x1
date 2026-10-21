@@ -562,13 +562,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (editingRecordId) {
         // Update existing record in Supabase
-        const { error: updErr } = await supabase
+        const { data: updData, error: updErr } = await supabase
           .from('chatgpt_logs')
           .update(recordPayload)
-          .eq('id', editingRecordId);
+          .eq('id', editingRecordId)
+          .select();
 
         if (updErr) {
           throw new Error(`อัปเดตข้อมูลไม่สำเร็จ: ${updErr.message}`);
+        }
+
+        if (!updData || updData.length === 0) {
+          throw new Error('Supabase ปฏิเสธการแก้ไข (ติด RLS Policy) กรุณารันคำสั่งปลดล็อกใน Supabase SQL Editor');
         }
 
         showToast(`🎉 อัปเดตข้อมูลสำเร็จ (ID: ${editingRecordId})`, 'success');
@@ -863,12 +868,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const callback = pendingDeleteTarget.onComplete;
 
       try {
-        const { error: delErr } = await supabase
+        const { data: delData, error: delErr } = await supabase
           .from('chatgpt_logs')
           .delete()
-          .eq('id', targetId);
+          .eq('id', targetId)
+          .select();
 
         if (delErr) throw delErr;
+
+        if (!delData || delData.length === 0) {
+          throw new Error('Supabase ปฏิเสธการลบ (ติด RLS Policy) กรุณารันคำสั่งปลดล็อกใน Supabase SQL Editor');
+        }
 
         hideDeleteConfirm();
         showToast('✓ ลบข้อมูลออกจาก Supabase เรียบร้อยแล้ว', 'success');
@@ -996,7 +1006,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (vaultCountBadge) vaultCountBadge.textContent = totalCount;
 
       // Remove existing cards
-      const existingCards = recordsList.querySelectorAll('.record-item-card');
+      const existingCards = recordsList.querySelectorAll('.record-item-card, .record-compact-card');
       existingCards.forEach(c => c.remove());
 
       if (!rows || rows.length === 0) {
