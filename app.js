@@ -191,13 +191,51 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnHeroAdd = document.getElementById('btnHeroAdd');
   const btnEmptyAdd = document.getElementById('btnEmptyAdd');
   const btnFabAdd = document.getElementById('btnFabAdd');
+  const addModalTitle = document.getElementById('addModalTitle');
+  const addModalSubtitle = document.getElementById('addModalSubtitle');
+  const addModalIconBubble = document.getElementById('addModalIconBubble');
 
-  function openAddModal() {
-    if (addContentModal) {
-      addContentModal.classList.add('active');
-      if (inputProductName) {
-        setTimeout(() => inputProductName.focus(), 150);
-      }
+  // Track if we are editing an existing record
+  let editingRecordId = null;
+
+  function openAddModal(isEdit = false, recordData = null) {
+    if (!addContentModal) return;
+
+    if (isEdit && recordData) {
+      editingRecordId = recordData.id;
+      if (addModalTitle) addModalTitle.textContent = `แก้ไขข้อมูลสินค้า (ID: ${recordData.id})`;
+      if (addModalSubtitle) addModalSubtitle.textContent = 'แก้ไขรายละเอียดคอนเทนต์และบันทึกอัปเดตลงใน Supabase';
+      if (addModalIconBubble) addModalIconBubble.textContent = '✏️';
+      if (btnSaveText) btnSaveText.textContent = '💾 บันทึกการแก้ไข (Update)';
+
+      // Fill existing values into inputs
+      if (inputProductName) inputProductName.value = recordData.product_name || '';
+      if (inputCaption) inputCaption.value = recordData.caption || '';
+      if (inputHashtags) inputHashtags.value = recordData.hashtags || '';
+      if (inputCoverUrl) inputCoverUrl.value = recordData.cover_image_url || '';
+      if (inputStoryUrl) inputStoryUrl.value = recordData.story_image_url || '';
+      if (inputVideoPrompt) inputVideoPrompt.value = recordData.video_prompt || '';
+      if (inputImagePrompt) inputImagePrompt.value = recordData.image_prompt || '';
+
+      selectedCoverFile = null;
+      selectedStoryFile = null;
+      if (coverFileInput) coverFileInput.value = '';
+      if (storyFileInput) storyFileInput.value = '';
+
+      updateCoverPreview(recordData.cover_image_url || '');
+      updateStoryPreview(recordData.story_image_url || '');
+      updateCounters();
+    } else {
+      editingRecordId = null;
+      if (addModalTitle) addModalTitle.textContent = 'กรอกข้อมูลชุดคอนเทนต์ใหม่';
+      if (addModalSubtitle) addModalSubtitle.textContent = 'บันทึกข้อมูล 7 ฟิลด์ลงใน Supabase (ตาราง chatgpt_logs)';
+      if (addModalIconBubble) addModalIconBubble.textContent = '＋';
+      if (btnSaveText) btnSaveText.textContent = '💾 บันทึกข้อมูลลง Supabase';
+    }
+
+    addContentModal.classList.add('active');
+    if (inputProductName) {
+      setTimeout(() => inputProductName.focus(), 150);
     }
   }
 
@@ -205,10 +243,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (addContentModal) {
       addContentModal.classList.remove('active');
     }
+    setTimeout(() => {
+      editingRecordId = null;
+    }, 200);
   }
 
   [btnHeaderAdd, btnHeroAdd, btnEmptyAdd, btnFabAdd].forEach(btn => {
-    if (btn) btn.addEventListener('click', openAddModal);
+    if (btn) btn.addEventListener('click', () => {
+      clearManualForm();
+      openAddModal(false);
+    });
   });
 
   if (btnAddModalClose) {
@@ -416,7 +460,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnSaveData) btnSaveData.disabled = loading;
     if (btnSaveSpinner) btnSaveSpinner.style.display = loading ? 'inline-block' : 'none';
     if (btnSaveIcon) btnSaveIcon.style.display = loading ? 'none' : 'inline-flex';
-    if (btnSaveText) btnSaveText.textContent = loading ? 'กำลังบันทึกลง Supabase...' : '💾 บันทึกข้อมูลลง Supabase';
+    if (btnSaveText) {
+      if (loading) {
+        btnSaveText.textContent = editingRecordId ? 'กำลังอัปเดตข้อมูล...' : 'กำลังบันทึกลง Supabase...';
+      } else {
+        btnSaveText.textContent = editingRecordId ? '💾 บันทึกการแก้ไข (Update)' : '💾 บันทึกข้อมูลลง Supabase';
+      }
+    }
   }
 
   async function handleSaveData() {
@@ -510,17 +560,32 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error('Supabase Client ไม่ได้เชื่อมต่อ กรุณาตรวจสอบ config.js');
       }
 
-      const { data: insData, error: insErr } = await supabase
-        .from('chatgpt_logs')
-        .insert([recordPayload])
-        .select();
+      if (editingRecordId) {
+        // Update existing record in Supabase
+        const { error: updErr } = await supabase
+          .from('chatgpt_logs')
+          .update(recordPayload)
+          .eq('id', editingRecordId);
 
-      if (insErr) {
-        throw new Error(`บันทึกลงตาราง chatgpt_logs ไม่สำเร็จ: ${insErr.message}`);
+        if (updErr) {
+          throw new Error(`อัปเดตข้อมูลไม่สำเร็จ: ${updErr.message}`);
+        }
+
+        showToast(`🎉 อัปเดตข้อมูลสำเร็จ (ID: ${editingRecordId})`, 'success');
+      } else {
+        // Insert new record in Supabase
+        const { data: insData, error: insErr } = await supabase
+          .from('chatgpt_logs')
+          .insert([recordPayload])
+          .select();
+
+        if (insErr) {
+          throw new Error(`บันทึกลงตาราง chatgpt_logs ไม่สำเร็จ: ${insErr.message}`);
+        }
+
+        const newId = insData && insData[0] ? insData[0].id : 'ใหม่';
+        showToast(`🎉 บันทึกข้อมูลเข้า Supabase สำเร็จ (ID: ${newId})`, 'success');
       }
-
-      const newId = insData && insData[0] ? insData[0].id : 'ใหม่';
-      showToast(`🎉 บันทึกข้อมูลเข้า Supabase สำเร็จ (ID: ${newId})`, 'success');
 
       // Clear Form, Close Modal, and Refresh Records List
       clearManualForm();
@@ -648,8 +713,9 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="record-actions-row">
           <span class="record-date">บันทึกเมื่อ: ${formatDate(item.created_at) || 'วันนี้'}</span>
           <div class="record-btns-group">
-            <button type="button" class="btn-mini-action btn-copy-all">คัดลอกทั้งหมด</button>
-            <button type="button" class="btn-mini-action btn-mini-delete btn-delete-row">ลบรายการ</button>
+            <button type="button" class="btn-mini-action btn-copy-all" title="คัดลอกข้อความทั้งหมด">📋 คัดลอก</button>
+            <button type="button" class="btn-mini-action btn-mini-edit btn-edit-row" title="แก้ไขข้อมูลสินค้านี้">✏️ แก้ไข</button>
+            <button type="button" class="btn-mini-action btn-mini-delete btn-delete-row" title="ลบรายการนี้">🗑️ ลบรายการ</button>
           </div>
         </div>
       </div>
@@ -697,10 +763,17 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
+    const btnEditRow = card.querySelector('.btn-edit-row');
+    if (btnEditRow) {
+      btnEditRow.addEventListener('click', () => {
+        openAddModal(true, item);
+      });
+    }
+
     const btnDeleteRow = card.querySelector('.btn-delete-row');
     if (btnDeleteRow) {
       btnDeleteRow.addEventListener('click', async () => {
-        if (!confirm(`คุณต้องการลบข้อมูล "${item.product_name || 'รายการนี้'}" ออกจาก Supabase ใช่หรือไม่?`)) {
+        if (!confirm(`คุณต้องการลบข้อมูล "${item.product_name || 'รายการนี้'}" (ID: ${item.id}) ออกจาก Supabase ใช่หรือไม่?`)) {
           return;
         }
 
@@ -726,7 +799,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
           console.error('Delete error:', err);
           showToast(`ลบไม่สำเร็จ: ${err.message}`, 'error');
-          btnDeleteRow.textContent = 'ลบรายการ';
+          btnDeleteRow.textContent = '🗑️ ลบรายการ';
           btnDeleteRow.disabled = false;
         }
       });

@@ -4472,6 +4472,16 @@ body::before {
   border-color: var(--primary);
 }
 
+.btn-mini-edit {
+  color: #38bdf8;
+}
+
+.btn-mini-edit:hover {
+  background: rgba(56, 189, 248, 0.22);
+  border-color: #38bdf8;
+  color: #fff;
+}
+
 .btn-mini-delete {
   color: #fb7185;
 }
