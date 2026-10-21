@@ -4442,7 +4442,7 @@ body::before {
   margin-bottom: 8px;
 }
 
-.compact-card-footer {
+.compact-card-meta-row {
   margin-top: auto;
   display: flex;
   align-items: center;
@@ -4451,18 +4451,55 @@ body::before {
   color: var(--text-muted);
 }
 
-.compact-view-hint {
-  color: #fda4af;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.74rem;
+/* Card Bottom Action Bar (ปุ่มแสดงเด่นชัดด้านล่างการ์ด) */
+.compact-card-action-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(18, 7, 13, 0.95);
 }
 
-.record-compact-card:hover .compact-view-hint {
-  color: #ffffff;
-  text-decoration: underline;
+.btn-card-action {
+  padding: 9px 4px;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all var(--transition-fast);
+}
+
+.btn-card-action:not(:last-child) {
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.btn-card-view {
+  color: #fecdd3;
+}
+.btn-card-view:hover {
+  background: rgba(244, 63, 94, 0.22);
+  color: #fff;
+}
+
+.btn-card-edit {
+  color: #38bdf8;
+}
+.btn-card-edit:hover {
+  background: rgba(56, 189, 248, 0.25);
+  color: #fff;
+}
+
+.btn-card-del {
+  color: #fb7185;
+}
+.btn-card-del:hover {
+  background: rgba(244, 63, 94, 0.38);
+  color: #fff;
 }
 
 .record-item-card {
@@ -5187,6 +5224,139 @@ body::before {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+/* ==========================================================================
+   Custom In-App Delete Confirmation Modal
+   ========================================================================== */
+.confirm-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 2, 4, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all var(--transition-fast);
+}
+
+.confirm-modal-backdrop.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.confirm-modal-card {
+  background: rgba(24, 8, 16, 0.98);
+  border: 1px solid rgba(244, 63, 94, 0.5);
+  box-shadow: 0 25px 65px rgba(0, 0, 0, 0.95), 0 0 45px rgba(244, 63, 94, 0.35);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 460px;
+  padding: 28px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: scale(0.92);
+  transition: transform var(--transition-fast);
+}
+
+.confirm-modal-backdrop.active .confirm-modal-card {
+  transform: scale(1);
+}
+
+.confirm-modal-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(244, 63, 94, 0.2);
+  border: 2px solid rgba(244, 63, 94, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  margin-bottom: 16px;
+  box-shadow: 0 0 25px rgba(244, 63, 94, 0.35);
+}
+
+.confirm-modal-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.confirm-modal-text {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.confirm-modal-text strong {
+  color: #fff;
+}
+
+.confirm-modal-warning {
+  display: block;
+  font-size: 0.78rem;
+  color: #fb7185;
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px dashed rgba(244, 63, 94, 0.35);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 22px;
+  line-height: 1.4;
+}
+
+.confirm-modal-actions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.btn-confirm-cancel,
+.btn-confirm-delete {
+  flex: 1;
+  padding: 12px 18px;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-confirm-cancel {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.btn-confirm-cancel:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.btn-confirm-delete {
+  background: linear-gradient(135deg, #ef4444, #be123c);
+  border: none;
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+}
+
+.btn-confirm-delete:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.6);
 }
 
 

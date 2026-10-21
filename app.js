@@ -803,35 +803,98 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  if (btnDetailDelete) {
-    btnDetailDelete.addEventListener('click', async () => {
-      if (!activeDetailItem) return;
-      const itemToDelete = activeDetailItem;
-      if (!confirm(`คุณต้องการลบข้อมูล "${itemToDelete.product_name || 'รายการนี้'}" (ID: ${itemToDelete.id}) ออกจาก Supabase ใช่หรือไม่?`)) {
-        return;
-      }
+  // --- Custom In-App Delete Confirmation Modal Elements & Logic ---
+  const deleteConfirmModal = document.getElementById('deleteConfirmModal');
+  const confirmDeleteName = document.getElementById('confirmDeleteName');
+  const confirmDeleteId = document.getElementById('confirmDeleteId');
+  const btnCancelDelete = document.getElementById('btnCancelDelete');
+  const btnConfirmDelete = document.getElementById('btnConfirmDelete');
+  const confirmDeleteSpinner = document.getElementById('confirmDeleteSpinner');
+  const confirmDeleteText = document.getElementById('confirmDeleteText');
+
+  let pendingDeleteTarget = null;
+  let isDeleting = false;
+
+  function showDeleteConfirm(item, onComplete) {
+    if (!deleteConfirmModal || !item) return;
+    pendingDeleteTarget = { id: item.id, name: item.product_name || 'ไม่มีชื่อสินค้า', onComplete };
+
+    if (confirmDeleteName) confirmDeleteName.textContent = pendingDeleteTarget.name;
+    if (confirmDeleteId) confirmDeleteId.textContent = `ID: ${pendingDeleteTarget.id}`;
+
+    deleteConfirmModal.classList.add('active');
+  }
+
+  function hideDeleteConfirm() {
+    if (deleteConfirmModal) deleteConfirmModal.classList.remove('active');
+    pendingDeleteTarget = null;
+    isDeleting = false;
+    if (btnConfirmDelete) btnConfirmDelete.disabled = false;
+    if (confirmDeleteSpinner) confirmDeleteSpinner.style.display = 'none';
+    if (confirmDeleteText) confirmDeleteText.textContent = '🗑️ ยืนยันการลบ';
+  }
+
+  if (btnCancelDelete) {
+    btnCancelDelete.addEventListener('click', hideDeleteConfirm);
+  }
+
+  if (deleteConfirmModal) {
+    deleteConfirmModal.addEventListener('click', (e) => {
+      if (e.target === deleteConfirmModal) hideDeleteConfirm();
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && deleteConfirmModal && deleteConfirmModal.classList.contains('active')) {
+      hideDeleteConfirm();
+    }
+  });
+
+  if (btnConfirmDelete) {
+    btnConfirmDelete.addEventListener('click', async () => {
+      if (!pendingDeleteTarget || isDeleting) return;
+      isDeleting = true;
+
+      btnConfirmDelete.disabled = true;
+      if (confirmDeleteSpinner) confirmDeleteSpinner.style.display = 'inline-block';
+      if (confirmDeleteText) confirmDeleteText.textContent = 'กำลังลบ...';
+
+      const targetId = pendingDeleteTarget.id;
+      const callback = pendingDeleteTarget.onComplete;
 
       try {
-        btnDetailDelete.textContent = 'กำลังลบ...';
-        btnDetailDelete.disabled = true;
-
         const { error: delErr } = await supabase
           .from('chatgpt_logs')
           .delete()
-          .eq('id', itemToDelete.id);
+          .eq('id', targetId);
 
         if (delErr) throw delErr;
 
-        closeRecordDetail();
+        hideDeleteConfirm();
         showToast('✓ ลบข้อมูลออกจาก Supabase เรียบร้อยแล้ว', 'success');
+
+        if (typeof callback === 'function') {
+          callback();
+        }
         await loadSupabaseRecords();
       } catch (err) {
         console.error('Delete error:', err);
         showToast(`ลบไม่สำเร็จ: ${err.message}`, 'error');
-      } finally {
-        btnDetailDelete.textContent = '🗑️ ลบ';
-        btnDetailDelete.disabled = false;
+        btnConfirmDelete.disabled = false;
+        if (confirmDeleteSpinner) confirmDeleteSpinner.style.display = 'none';
+        if (confirmDeleteText) confirmDeleteText.textContent = '🗑️ ยืนยันการลบ';
+        isDeleting = false;
       }
+    });
+  }
+
+  // Detail Modal Delete Button -> uses in-app confirm modal
+  if (btnDetailDelete) {
+    btnDetailDelete.addEventListener('click', () => {
+      if (!activeDetailItem) return;
+      showDeleteConfirm(activeDetailItem, () => {
+        closeRecordDetail();
+      });
     });
   }
 
@@ -844,14 +907,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const thumbSrc = item.cover_image_url || item.story_image_url || '';
 
     card.innerHTML = `
-      <div class="compact-card-media">
+      <div class="compact-card-media" title="คลิกเพื่อดูรายละเอียด">
         <span class="compact-id-pill">ID: ${item.id}</span>
-        <div class="compact-quick-actions">
-          <button type="button" class="compact-action-btn btn-edit-quick" title="แก้ไขข้อมูลสินค้านี้">✏️</button>
-          <button type="button" class="compact-action-btn btn-del btn-del-quick" title="ลบรายการนี้">🗑️</button>
-        </div>
         ${thumbSrc ? `
-          <img src="${thumbSrc}" alt="${item.product_name || 'รูปสินค้า'}" loading="lazy">
+          <img src="${thumbSrc}" alt="รูปสินค้า" loading="lazy" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';">
+          <div class="compact-media-placeholder" style="display: none;">
+            <span style="font-size: 2.2rem;">🛍️</span>
+            <span>ไม่มีรูปภาพ</span>
+          </div>
         ` : `
           <div class="compact-media-placeholder">
             <span style="font-size: 2.2rem;">🛍️</span>
@@ -859,63 +922,54 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         `}
       </div>
-      <div class="compact-card-body">
+      <div class="compact-card-body" title="คลิกเพื่อดูรายละเอียด">
         <h4 class="compact-card-title">${item.product_name || 'ไม่มีชื่อสินค้า'}</h4>
-        <div class="compact-card-footer">
+        <div class="compact-card-meta-row">
           <span>${formatDate(item.created_at) || 'วันนี้'}</span>
-          <span class="compact-view-hint">ดูรายละเอียด ➔</span>
         </div>
+      </div>
+      <div class="compact-card-action-bar">
+        <button type="button" class="btn-card-action btn-card-view" title="ดูรายละเอียดเต็ม">
+          <span>👁️ ดูข้อมูล</span>
+        </button>
+        <button type="button" class="btn-card-action btn-card-edit" title="แก้ไขข้อมูล">
+          <span>✏️ แก้ไข</span>
+        </button>
+        <button type="button" class="btn-card-action btn-card-del" title="ลบข้อมูลสินค้านี้">
+          <span>🗑️ ลบ</span>
+        </button>
       </div>
     `;
 
-    // Click card -> Open full detail modal
-    card.addEventListener('click', () => {
-      openRecordDetail(item);
+    // Click media, body, or view button -> Open full detail modal
+    const mediaEl = card.querySelector('.compact-card-media');
+    const bodyEl = card.querySelector('.compact-card-body');
+    const btnView = card.querySelector('.btn-card-view');
+
+    [mediaEl, bodyEl, btnView].forEach(el => {
+      if (el) el.addEventListener('click', () => openRecordDetail(item));
     });
 
-    // Quick Edit button
-    const btnEditQuick = card.querySelector('.btn-edit-quick');
-    if (btnEditQuick) {
-      btnEditQuick.addEventListener('click', (e) => {
+    // Action Bar Edit button
+    const btnEdit = card.querySelector('.btn-card-edit');
+    if (btnEdit) {
+      btnEdit.addEventListener('click', (e) => {
         e.stopPropagation();
         openAddModal(true, item);
       });
     }
 
-    // Quick Delete button
-    const btnDelQuick = card.querySelector('.btn-del-quick');
-    if (btnDelQuick) {
-      btnDelQuick.addEventListener('click', async (e) => {
+    // Action Bar Delete button
+    const btnDel = card.querySelector('.btn-card-del');
+    if (btnDel) {
+      btnDel.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (!confirm(`คุณต้องการลบข้อมูล "${item.product_name || 'รายการนี้'}" (ID: ${item.id}) ออกจาก Supabase ใช่หรือไม่?`)) {
-          return;
-        }
-
-        try {
-          btnDelQuick.textContent = '⏳';
-          btnDelQuick.disabled = true;
-
-          const { error: delErr } = await supabase
-            .from('chatgpt_logs')
-            .delete()
-            .eq('id', item.id);
-
-          if (delErr) throw delErr;
-
+        showDeleteConfirm(item, () => {
           card.style.opacity = '0';
           card.style.transform = 'scale(0.9)';
           card.style.transition = 'all 0.3s ease';
-          setTimeout(() => {
-            card.remove();
-            showToast('✓ ลบข้อมูลออกจาก Supabase เรียบร้อยแล้ว', 'success');
-            loadSupabaseRecords();
-          }, 300);
-        } catch (err) {
-          console.error('Delete error:', err);
-          showToast(`ลบไม่สำเร็จ: ${err.message}`, 'error');
-          btnDelQuick.textContent = '🗑️';
-          btnDelQuick.disabled = false;
-        }
+          setTimeout(() => card.remove(), 300);
+        });
       });
     }
 

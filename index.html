@@ -432,6 +432,27 @@
       </div>
     </div>
 
+    <!-- Custom In-App Delete Confirmation Modal (ไม่ใช้ alert/confirm ของเบราว์เซอร์) -->
+    <div class="confirm-modal-backdrop" id="deleteConfirmModal" role="dialog" aria-modal="true" aria-label="ยืนยันการลบข้อมูล">
+      <div class="confirm-modal-card glass-panel">
+        <div class="confirm-modal-icon">🗑️</div>
+        <h3 class="confirm-modal-title">ยืนยันการลบข้อมูลสินค้า</h3>
+        <p class="confirm-modal-text">
+          คุณต้องการลบข้อมูล <strong id="confirmDeleteName">...</strong> (<span id="confirmDeleteId">ID: -</span>) ออกจาก Supabase ใช่หรือไม่?
+        </p>
+        <span class="confirm-modal-warning">⚠️ การกระทำนี้ไม่สามารถย้อนกลับได้ ข้อมูลจะถูกลบออกจากฐานข้อมูลทันที</span>
+        <div class="confirm-modal-actions">
+          <button type="button" class="btn-confirm-cancel" id="btnCancelDelete">
+            ยกเลิก
+          </button>
+          <button type="button" class="btn-confirm-delete" id="btnConfirmDelete">
+            <span class="btn-spinner" id="confirmDeleteSpinner" style="display: none;"></span>
+            <span id="confirmDeleteText">🗑️ ยืนยันการลบ</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Footer -->
     <footer class="app-footer">
       <p>VisionPrompt Local Gateway • ทำงานเฉพาะบนเครื่องคอมพิวเตอร์ของคุณเท่านั้น (100% Offline / Local Ready)</p>
