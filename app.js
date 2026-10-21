@@ -184,6 +184,49 @@ document.addEventListener('DOMContentLoaded', () => {
   const vaultList = document.getElementById('vaultList');
   const vaultCountBadge = document.getElementById('vaultCountBadge');
 
+  // Add Content Modal Elements
+  const addContentModal = document.getElementById('addContentModal');
+  const btnAddModalClose = document.getElementById('btnAddModalClose');
+  const btnHeaderAdd = document.getElementById('btnHeaderAdd');
+  const btnHeroAdd = document.getElementById('btnHeroAdd');
+  const btnEmptyAdd = document.getElementById('btnEmptyAdd');
+  const btnFabAdd = document.getElementById('btnFabAdd');
+
+  function openAddModal() {
+    if (addContentModal) {
+      addContentModal.classList.add('active');
+      if (inputProductName) {
+        setTimeout(() => inputProductName.focus(), 150);
+      }
+    }
+  }
+
+  function closeAddModal() {
+    if (addContentModal) {
+      addContentModal.classList.remove('active');
+    }
+  }
+
+  [btnHeaderAdd, btnHeroAdd, btnEmptyAdd, btnFabAdd].forEach(btn => {
+    if (btn) btn.addEventListener('click', openAddModal);
+  });
+
+  if (btnAddModalClose) {
+    btnAddModalClose.addEventListener('click', closeAddModal);
+  }
+
+  if (addContentModal) {
+    addContentModal.addEventListener('click', (e) => {
+      if (e.target === addContentModal) closeAddModal();
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && addContentModal && addContentModal.classList.contains('active')) {
+      closeAddModal();
+    }
+  });
+
   // Local state for files
   let selectedCoverFile = null;
   let selectedStoryFile = null;
@@ -479,8 +522,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const newId = insData && insData[0] ? insData[0].id : 'ใหม่';
       showToast(`🎉 บันทึกข้อมูลเข้า Supabase สำเร็จ (ID: ${newId})`, 'success');
 
-      // Clear Form and Refresh Records List
+      // Clear Form, Close Modal, and Refresh Records List
       clearManualForm();
+      closeAddModal();
       await loadSupabaseRecords();
 
       // Scroll to newly added records list smoothly
