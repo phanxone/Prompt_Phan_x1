@@ -339,6 +339,99 @@
       </div>
     </div>
 
+    <!-- Record Detail Modal (แสดงรายละเอียดเต็มเมื่อคลิกการ์ดสินค้า) -->
+    <div class="detail-modal-backdrop" id="recordDetailModal" role="dialog" aria-modal="true" aria-label="รายละเอียดสินค้า">
+      <div class="detail-modal-container glass-panel">
+        <!-- Modal Header -->
+        <div class="detail-modal-header">
+          <div class="detail-modal-title-group">
+            <div class="detail-modal-icon-bubble">📦</div>
+            <div>
+              <h3 class="detail-modal-title" id="detailModalTitle">ชื่อสินค้า</h3>
+              <div class="detail-modal-meta">
+                <span class="detail-meta-pill" id="detailModalId">ID: -</span>
+                <span class="detail-meta-date" id="detailModalDate">บันทึกเมื่อ: -</span>
+              </div>
+            </div>
+          </div>
+          <div class="detail-modal-header-actions">
+            <button type="button" class="btn-detail-edit" id="btnDetailEdit" title="แก้ไขข้อมูลนี้">
+              <span>✏️ แก้ไข</span>
+            </button>
+            <button type="button" class="btn-detail-delete" id="btnDetailDelete" title="ลบข้อมูลนี้ออกจาก Supabase">
+              <span>🗑️ ลบ</span>
+            </button>
+            <button type="button" class="add-modal-close" id="btnDetailModalClose" aria-label="ปิดหน้าต่าง">✕</button>
+          </div>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="detail-modal-body">
+          <!-- Dual Thumbs Section -->
+          <div class="detail-images-grid">
+            <div class="detail-image-card" id="detailCoverCard">
+              <div class="detail-img-box vertical" id="detailCoverBox" title="คลิกเพื่อดูรูปภาพขนาดเต็ม">
+                <img id="detailCoverImg" src="" alt="รูปปก TikTok 9:16">
+                <span class="detail-img-badge">📱 รูปปก TikTok 9:16</span>
+              </div>
+            </div>
+            <div class="detail-image-card" id="detailStoryCard">
+              <div class="detail-img-box" id="detailStoryBox" title="คลิกเพื่อดูรูปภาพขนาดเต็ม">
+                <img id="detailStoryImg" src="" alt="สตอรีบอร์ด 6 ช่อง">
+                <span class="detail-img-badge">🖼️ สตอรีบอร์ด 6 ช่อง (3:2)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Caption Section -->
+          <div class="detail-section-card">
+            <div class="detail-section-header">
+              <span class="detail-section-label">📝 คำอธิบายคลิป TikTok (Caption สำหรับปักตะกร้า):</span>
+              <button type="button" class="btn-mini-action" id="btnDetailCopyCaption">คัดลอกแคปชัน</button>
+            </div>
+            <p class="detail-section-text" id="detailCaptionText">-</p>
+          </div>
+
+          <!-- Hashtags Section -->
+          <div class="detail-section-card" id="detailHashtagsCard">
+            <div class="detail-section-header">
+              <span class="detail-section-label">#️⃣ แฮชแท็ก:</span>
+              <button type="button" class="btn-mini-action" id="btnDetailCopyTags">คัดลอกแท็ก</button>
+            </div>
+            <p class="detail-section-text detail-tags-text" id="detailHashtagsText">-</p>
+          </div>
+
+          <!-- Video Prompt (Google Flow) -->
+          <div class="detail-section-card" id="detailVideoPromptCard">
+            <div class="detail-section-header">
+              <span class="detail-section-label">🎬 พรอมต์คลิป Google Flow (6 ซีน):</span>
+              <button type="button" class="btn-mini-action" id="btnDetailCopyVideoPrompt">คัดลอกพรอมต์คลิป</button>
+            </div>
+            <p class="detail-code-text" id="detailVideoPromptText">-</p>
+          </div>
+
+          <!-- Image Prompt -->
+          <div class="detail-section-card" id="detailImagePromptCard">
+            <div class="detail-section-header">
+              <span class="detail-section-label">🎨 พรอมต์ทำรูปสินค้า (Image Prompt):</span>
+              <button type="button" class="btn-mini-action" id="btnDetailCopyImagePrompt">คัดลอกพรอมต์รูป</button>
+            </div>
+            <p class="detail-code-text" id="detailImagePromptText">-</p>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="detail-modal-footer">
+          <button type="button" class="btn-secondary" id="btnDetailCopyAll">
+            📋 คัดลอกข้อมูลทั้งหมด
+          </button>
+          <button type="button" class="btn-primary" id="btnDetailCloseFooter">
+            ปิดหน้าต่าง
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Footer -->
     <footer class="app-footer">
       <p>VisionPrompt Local Gateway • ทำงานเฉพาะบนเครื่องคอมพิวเตอร์ของคุณเท่านั้น (100% Offline / Local Ready)</p>

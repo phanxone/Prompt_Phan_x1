@@ -639,147 +639,261 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- Create Record Card HTML Element ---
+  // --- Record Detail Modal Elements & Handlers ---
+  const recordDetailModal = document.getElementById('recordDetailModal');
+  const btnDetailModalClose = document.getElementById('btnDetailModalClose');
+  const btnDetailCloseFooter = document.getElementById('btnDetailCloseFooter');
+  const detailModalTitle = document.getElementById('detailModalTitle');
+  const detailModalId = document.getElementById('detailModalId');
+  const detailModalDate = document.getElementById('detailModalDate');
+  const detailCoverCard = document.getElementById('detailCoverCard');
+  const detailCoverImg = document.getElementById('detailCoverImg');
+  const detailCoverBox = document.getElementById('detailCoverBox');
+  const detailStoryCard = document.getElementById('detailStoryCard');
+  const detailStoryImg = document.getElementById('detailStoryImg');
+  const detailStoryBox = document.getElementById('detailStoryBox');
+  const detailCaptionText = document.getElementById('detailCaptionText');
+  const btnDetailCopyCaption = document.getElementById('btnDetailCopyCaption');
+  const detailHashtagsCard = document.getElementById('detailHashtagsCard');
+  const detailHashtagsText = document.getElementById('detailHashtagsText');
+  const btnDetailCopyTags = document.getElementById('btnDetailCopyTags');
+  const detailVideoPromptCard = document.getElementById('detailVideoPromptCard');
+  const detailVideoPromptText = document.getElementById('detailVideoPromptText');
+  const btnDetailCopyVideoPrompt = document.getElementById('btnDetailCopyVideoPrompt');
+  const detailImagePromptCard = document.getElementById('detailImagePromptCard');
+  const detailImagePromptText = document.getElementById('detailImagePromptText');
+  const btnDetailCopyImagePrompt = document.getElementById('btnDetailCopyImagePrompt');
+  const btnDetailCopyAll = document.getElementById('btnDetailCopyAll');
+  const btnDetailEdit = document.getElementById('btnDetailEdit');
+  const btnDetailDelete = document.getElementById('btnDetailDelete');
+
+  let activeDetailItem = null;
+
+  function openRecordDetail(item) {
+    if (!recordDetailModal || !item) return;
+    activeDetailItem = item;
+
+    if (detailModalTitle) detailModalTitle.textContent = item.product_name || 'ไม่มีชื่อสินค้า';
+    if (detailModalId) detailModalId.textContent = `ID: ${item.id}`;
+    if (detailModalDate) detailModalDate.textContent = `บันทึกเมื่อ: ${formatDate(item.created_at) || 'วันนี้'}`;
+
+    // Images
+    const coverSrc = item.cover_image_url || '';
+    const storySrc = item.story_image_url || '';
+
+    if (detailCoverCard && detailCoverImg) {
+      if (coverSrc) {
+        detailCoverImg.src = coverSrc;
+        detailCoverCard.style.display = 'block';
+      } else {
+        detailCoverImg.src = '';
+        detailCoverCard.style.display = 'none';
+      }
+    }
+
+    if (detailStoryCard && detailStoryImg) {
+      if (storySrc) {
+        detailStoryImg.src = storySrc;
+        detailStoryCard.style.display = 'block';
+      } else {
+        detailStoryImg.src = '';
+        detailStoryCard.style.display = 'none';
+      }
+    }
+
+    // Texts
+    if (detailCaptionText) detailCaptionText.textContent = item.caption || '-';
+
+    if (detailHashtagsCard && detailHashtagsText) {
+      if (item.hashtags) {
+        detailHashtagsText.textContent = item.hashtags;
+        detailHashtagsCard.style.display = 'flex';
+      } else {
+        detailHashtagsCard.style.display = 'none';
+      }
+    }
+
+    if (detailVideoPromptCard && detailVideoPromptText) {
+      if (item.video_prompt) {
+        detailVideoPromptText.textContent = item.video_prompt;
+        detailVideoPromptCard.style.display = 'flex';
+      } else {
+        detailVideoPromptCard.style.display = 'none';
+      }
+    }
+
+    if (detailImagePromptCard && detailImagePromptText) {
+      if (item.image_prompt) {
+        detailImagePromptText.textContent = item.image_prompt;
+        detailImagePromptCard.style.display = 'flex';
+      } else {
+        detailImagePromptCard.style.display = 'none';
+      }
+    }
+
+    recordDetailModal.classList.add('active');
+  }
+
+  function closeRecordDetail() {
+    if (recordDetailModal) recordDetailModal.classList.remove('active');
+  }
+
+  if (btnDetailModalClose) btnDetailModalClose.addEventListener('click', closeRecordDetail);
+  if (btnDetailCloseFooter) btnDetailCloseFooter.addEventListener('click', closeRecordDetail);
+  if (recordDetailModal) {
+    recordDetailModal.addEventListener('click', (e) => {
+      if (e.target === recordDetailModal) closeRecordDetail();
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && recordDetailModal && recordDetailModal.classList.contains('active')) {
+      closeRecordDetail();
+    }
+  });
+
+  // Lightbox from detail modal
+  if (detailCoverBox) {
+    detailCoverBox.addEventListener('click', () => {
+      if (detailCoverImg && detailCoverImg.src) openLightbox(detailCoverImg.src);
+    });
+  }
+  if (detailStoryBox) {
+    detailStoryBox.addEventListener('click', () => {
+      if (detailStoryImg && detailStoryImg.src) openLightbox(detailStoryImg.src);
+    });
+  }
+
+  // Detail Modal Copy Handlers
+  if (btnDetailCopyCaption) {
+    btnDetailCopyCaption.addEventListener('click', () => {
+      if (activeDetailItem) copyTextToClipboard(activeDetailItem.caption, 'คัดลอกแคปชันเรียบร้อยแล้ว!');
+    });
+  }
+  if (btnDetailCopyTags) {
+    btnDetailCopyTags.addEventListener('click', () => {
+      if (activeDetailItem) copyTextToClipboard(activeDetailItem.hashtags, 'คัดลอกแฮชแท็กเรียบร้อยแล้ว!');
+    });
+  }
+  if (btnDetailCopyVideoPrompt) {
+    btnDetailCopyVideoPrompt.addEventListener('click', () => {
+      if (activeDetailItem) copyTextToClipboard(activeDetailItem.video_prompt, 'คัดลอกพรอมต์ Google Flow เรียบร้อยแล้ว!');
+    });
+  }
+  if (btnDetailCopyImagePrompt) {
+    btnDetailCopyImagePrompt.addEventListener('click', () => {
+      if (activeDetailItem) copyTextToClipboard(activeDetailItem.image_prompt, 'คัดลอกพรอมต์รูปภาพเรียบร้อยแล้ว!');
+    });
+  }
+  if (btnDetailCopyAll) {
+    btnDetailCopyAll.addEventListener('click', () => {
+      if (!activeDetailItem) return;
+      const fullContent = `${activeDetailItem.product_name || ''}\n\n${activeDetailItem.caption || ''}\n\n${activeDetailItem.hashtags || ''}\n\n[Google Flow Prompt]\n${activeDetailItem.video_prompt || ''}`;
+      copyTextToClipboard(fullContent, 'คัดลอกข้อมูลทั้งหมดเรียบร้อยแล้ว!');
+    });
+  }
+
+  // Detail Modal Edit & Delete Handlers
+  if (btnDetailEdit) {
+    btnDetailEdit.addEventListener('click', () => {
+      if (!activeDetailItem) return;
+      const itemToEdit = activeDetailItem;
+      closeRecordDetail();
+      openAddModal(true, itemToEdit);
+    });
+  }
+
+  if (btnDetailDelete) {
+    btnDetailDelete.addEventListener('click', async () => {
+      if (!activeDetailItem) return;
+      const itemToDelete = activeDetailItem;
+      if (!confirm(`คุณต้องการลบข้อมูล "${itemToDelete.product_name || 'รายการนี้'}" (ID: ${itemToDelete.id}) ออกจาก Supabase ใช่หรือไม่?`)) {
+        return;
+      }
+
+      try {
+        btnDetailDelete.textContent = 'กำลังลบ...';
+        btnDetailDelete.disabled = true;
+
+        const { error: delErr } = await supabase
+          .from('chatgpt_logs')
+          .delete()
+          .eq('id', itemToDelete.id);
+
+        if (delErr) throw delErr;
+
+        closeRecordDetail();
+        showToast('✓ ลบข้อมูลออกจาก Supabase เรียบร้อยแล้ว', 'success');
+        await loadSupabaseRecords();
+      } catch (err) {
+        console.error('Delete error:', err);
+        showToast(`ลบไม่สำเร็จ: ${err.message}`, 'error');
+      } finally {
+        btnDetailDelete.textContent = '🗑️ ลบ';
+        btnDetailDelete.disabled = false;
+      }
+    });
+  }
+
+  // --- Create Compact Record Card HTML Element ---
   function createRecordCard(item) {
     const card = document.createElement('div');
-    card.className = 'record-item-card';
+    card.className = 'record-compact-card';
     card.id = `recordCard_${item.id}`;
 
-    const coverImgSrc = item.cover_image_url || '';
-    const storyImgSrc = item.story_image_url || '';
+    const thumbSrc = item.cover_image_url || item.story_image_url || '';
 
     card.innerHTML = `
-      <div class="record-thumbs-col">
-        <div class="record-thumb-dual">
-          <div class="record-thumb-wrap" title="คลิกดูรูปปกขนาดเต็ม">
-            ${coverImgSrc ? `<img src="${coverImgSrc}" alt="รูปปก" class="clickable-thumb">` : `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#a37c88;font-size:0.75rem;">ไม่มีรูปปก</div>`}
-            <span class="record-thumb-badge">ปก 9:16</span>
-          </div>
-          <div class="record-thumb-wrap story-wrap" title="คลิกดูสตอรีบอร์ดขนาดเต็ม">
-            ${storyImgSrc ? `<img src="${storyImgSrc}" alt="สตอรีบอร์ด" class="clickable-thumb">` : `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#a37c88;font-size:0.75rem;">ไม่มีสตอรีบอร์ด</div>`}
-            <span class="record-thumb-badge">สตอรีบอร์ด 6 ช่อง</span>
-          </div>
+      <div class="compact-card-media">
+        <span class="compact-id-pill">ID: ${item.id}</span>
+        <div class="compact-quick-actions">
+          <button type="button" class="compact-action-btn btn-edit-quick" title="แก้ไขข้อมูลสินค้านี้">✏️</button>
+          <button type="button" class="compact-action-btn btn-del btn-del-quick" title="ลบรายการนี้">🗑️</button>
         </div>
+        ${thumbSrc ? `
+          <img src="${thumbSrc}" alt="${item.product_name || 'รูปสินค้า'}" loading="lazy">
+        ` : `
+          <div class="compact-media-placeholder">
+            <span style="font-size: 2.2rem;">🛍️</span>
+            <span>ไม่มีรูปภาพ</span>
+          </div>
+        `}
       </div>
-
-      <div class="record-info-col">
-        <div class="record-header-row">
-          <h4 class="record-title">${item.product_name || 'ไม่มีชื่อสินค้า'}</h4>
-          <span class="record-meta-pill">ID: ${item.id}</span>
-        </div>
-
-        <!-- Caption Box -->
-        <div class="record-content-box">
-          <div class="record-box-label">
-            <span>📝 คำอธิบายคลิป TikTok (Caption):</span>
-            <button type="button" class="btn-mini-action btn-copy-caption">คัดลอกแคปชัน</button>
-          </div>
-          <p class="record-box-text">${item.caption || '-'}</p>
-        </div>
-
-        <!-- Hashtags -->
-        ${item.hashtags ? `
-          <div class="record-content-box" style="padding: 8px 12px;">
-            <div class="record-box-label">
-              <span>#️⃣ แฮชแท็ก:</span>
-              <button type="button" class="btn-mini-action btn-copy-tags">คัดลอกแท็ก</button>
-            </div>
-            <p class="record-box-text" style="color: #fda4af;">${item.hashtags}</p>
-          </div>
-        ` : ''}
-
-        <!-- Video Prompt (Google Flow) -->
-        ${item.video_prompt ? `
-          <div class="record-content-box">
-            <div class="record-box-label">
-              <span>🎬 พรอมต์คลิป Google Flow:</span>
-              <button type="button" class="btn-mini-action btn-copy-vprompt">คัดลอกพรอมต์คลิป</button>
-            </div>
-            <p class="record-box-text" style="font-family:'JetBrains Mono',monospace; font-size:0.8rem; max-height:120px; overflow-y:auto;">${item.video_prompt}</p>
-          </div>
-        ` : ''}
-
-        <!-- Image Prompt -->
-        ${item.image_prompt ? `
-          <div class="record-content-box">
-            <div class="record-box-label">
-              <span>🎨 พรอมต์ทำรูปสินค้า (image_prompt):</span>
-              <button type="button" class="btn-mini-action btn-copy-iprompt">คัดลอกพรอมต์รูป</button>
-            </div>
-            <p class="record-box-text" style="font-family:'JetBrains Mono',monospace; font-size:0.8rem; max-height:90px; overflow-y:auto;">${item.image_prompt}</p>
-          </div>
-        ` : ''}
-
-        <!-- Card Footer Actions -->
-        <div class="record-actions-row">
-          <span class="record-date">บันทึกเมื่อ: ${formatDate(item.created_at) || 'วันนี้'}</span>
-          <div class="record-btns-group">
-            <button type="button" class="btn-mini-action btn-copy-all" title="คัดลอกข้อความทั้งหมด">📋 คัดลอก</button>
-            <button type="button" class="btn-mini-action btn-mini-edit btn-edit-row" title="แก้ไขข้อมูลสินค้านี้">✏️ แก้ไข</button>
-            <button type="button" class="btn-mini-action btn-mini-delete btn-delete-row" title="ลบรายการนี้">🗑️ ลบรายการ</button>
-          </div>
+      <div class="compact-card-body">
+        <h4 class="compact-card-title">${item.product_name || 'ไม่มีชื่อสินค้า'}</h4>
+        <div class="compact-card-footer">
+          <span>${formatDate(item.created_at) || 'วันนี้'}</span>
+          <span class="compact-view-hint">ดูรายละเอียด ➔</span>
         </div>
       </div>
     `;
 
-    // Attach Event Handlers for Copy & Zoom & Delete
-    const thumbs = card.querySelectorAll('.clickable-thumb');
-    thumbs.forEach(img => {
-      img.addEventListener('click', () => openLightbox(img.src));
+    // Click card -> Open full detail modal
+    card.addEventListener('click', () => {
+      openRecordDetail(item);
     });
 
-    const btnCopyCaption = card.querySelector('.btn-copy-caption');
-    if (btnCopyCaption) {
-      btnCopyCaption.addEventListener('click', () => {
-        copyTextToClipboard(item.caption, 'คัดลอกแคปชันเรียบร้อยแล้ว!');
-      });
-    }
-
-    const btnCopyTags = card.querySelector('.btn-copy-tags');
-    if (btnCopyTags) {
-      btnCopyTags.addEventListener('click', () => {
-        copyTextToClipboard(item.hashtags, 'คัดลอกแฮชแท็กเรียบร้อยแล้ว!');
-      });
-    }
-
-    const btnCopyVPrompt = card.querySelector('.btn-copy-vprompt');
-    if (btnCopyVPrompt) {
-      btnCopyVPrompt.addEventListener('click', () => {
-        copyTextToClipboard(item.video_prompt, 'คัดลอกพรอมต์ Google Flow เรียบร้อยแล้ว!');
-      });
-    }
-
-    const btnCopyIPrompt = card.querySelector('.btn-copy-iprompt');
-    if (btnCopyIPrompt) {
-      btnCopyIPrompt.addEventListener('click', () => {
-        copyTextToClipboard(item.image_prompt, 'คัดลอกพรอมต์ทำรูปเรียบร้อยแล้ว!');
-      });
-    }
-
-    const btnCopyAll = card.querySelector('.btn-copy-all');
-    if (btnCopyAll) {
-      btnCopyAll.addEventListener('click', () => {
-        const fullContent = `${item.product_name || ''}\n\n${item.caption || ''}\n\n${item.hashtags || ''}\n\n[Google Flow Prompt]\n${item.video_prompt || ''}`;
-        copyTextToClipboard(fullContent, 'คัดลอกชุดคอนเทนต์ทั้งหมดเรียบร้อยแล้ว!');
-      });
-    }
-
-    const btnEditRow = card.querySelector('.btn-edit-row');
-    if (btnEditRow) {
-      btnEditRow.addEventListener('click', () => {
+    // Quick Edit button
+    const btnEditQuick = card.querySelector('.btn-edit-quick');
+    if (btnEditQuick) {
+      btnEditQuick.addEventListener('click', (e) => {
+        e.stopPropagation();
         openAddModal(true, item);
       });
     }
 
-    const btnDeleteRow = card.querySelector('.btn-delete-row');
-    if (btnDeleteRow) {
-      btnDeleteRow.addEventListener('click', async () => {
+    // Quick Delete button
+    const btnDelQuick = card.querySelector('.btn-del-quick');
+    if (btnDelQuick) {
+      btnDelQuick.addEventListener('click', async (e) => {
+        e.stopPropagation();
         if (!confirm(`คุณต้องการลบข้อมูล "${item.product_name || 'รายการนี้'}" (ID: ${item.id}) ออกจาก Supabase ใช่หรือไม่?`)) {
           return;
         }
 
         try {
-          btnDeleteRow.textContent = 'กำลังลบ...';
-          btnDeleteRow.disabled = true;
+          btnDelQuick.textContent = '⏳';
+          btnDelQuick.disabled = true;
 
           const { error: delErr } = await supabase
             .from('chatgpt_logs')
@@ -789,7 +903,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (delErr) throw delErr;
 
           card.style.opacity = '0';
-          card.style.transform = 'scale(0.95)';
+          card.style.transform = 'scale(0.9)';
           card.style.transition = 'all 0.3s ease';
           setTimeout(() => {
             card.remove();
@@ -799,8 +913,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
           console.error('Delete error:', err);
           showToast(`ลบไม่สำเร็จ: ${err.message}`, 'error');
-          btnDeleteRow.textContent = '🗑️ ลบรายการ';
-          btnDeleteRow.disabled = false;
+          btnDelQuick.textContent = '🗑️';
+          btnDelQuick.disabled = false;
         }
       });
     }
