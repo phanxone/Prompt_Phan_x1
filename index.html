@@ -118,363 +118,228 @@
       <!-- Title & Headline -->
       <section class="hero-section">
         <div class="hero-pill">
-          <span class="sparkle-icon">✦</span> เปิดประตูสู่เวทมนตร์แห่งภาพ
+          <span class="sparkle-icon">✦</span> บันทึกชุดข้อมูลคอนเทนต์ TikTok Affiliate
         </div>
-        <h2 class="hero-title">สร้างโลกของคุณให้มีชีวิต</h2>
-        <p class="hero-description">นำภาพ แรงบันดาลใจ และถ้อยคำของคุณมาร่ายมนตร์ให้กลายเป็นผลงานใหม่ใน UPlord</p>
+        <h2 class="hero-title">ฟอร์มกรอกข้อมูลและบันทึกลง Supabase</h2>
+        <p class="hero-description">กรอกข้อมูลสินค้า, คำอธิบาย, แฮชแท็ก, อัปโหลดรูปปก, รูปสตอรี่ และพรอมต์ เพื่อบันทึกลงฐานข้อมูล Supabase เตรียมส่งต่อ Google Flow และ TikTok</p>
       </section>
 
-      <!-- Active Chat Session Indicator Bar -->
-      <div class="session-active-bar" id="sessionActiveBar">
-        <div class="session-active-info">
-          <span class="session-status-dot"></span>
-          <span class="session-info-label">กำลังคุยสินค้า:</span>
-          <strong class="session-info-title" id="activeBarTitle">แชทสินค้าใหม่</strong>
+      <!-- Manual Data Input Form Card -->
+      <section class="command-card glass-panel" id="manualDataForm">
+        <!-- Section Header -->
+        <div class="card-section form-intro-section">
+          <div class="form-header-badge">
+            <span class="badge-dot"></span>
+            <span>บันทึกข้อมูลเข้า Supabase (ตาราง chatgpt_logs)</span>
+          </div>
+          <h3 class="form-main-heading">กรอกข้อมูลชุดคอนเทนต์ (7 ฟิลด์หลัก)</h3>
+          <p class="form-sub-heading">กรอกข้อมูลและเลือกรูปภาพด้านล่าง จากนั้นกด "บันทึกข้อมูลลง Supabase" เพื่อจัดเก็บข้อมูลทันที</p>
         </div>
-        <div class="session-active-actions">
-          <button type="button" class="btn-session-action btn-session-rename" id="btnRenameCurrentChat" title="เปลี่ยนชื่อแชทสินค้านี้">
-            ✏️ เปลี่ยนชื่อ
-          </button>
-          <button type="button" class="btn-session-action btn-session-new" id="btnInlineNewChat" title="เริ่มแชทสินค้าใหม่">
-            + แชทใหม่
-          </button>
-        </div>
-      </div>
 
-      <!-- Command Center Card -->
-      <section class="command-card glass-panel" id="commandPanel">
-        <!-- Section 1: Upload Area -->
+        <!-- Section 1: ข้อมูลสินค้าและโพสต์ TikTok -->
         <div class="card-section">
           <div class="section-label-row">
             <span class="section-badge">01</span>
-            <label class="section-title">อัปโหลดรูปภาพประกอบคำสั่ง</label>
-            <span class="section-hint">(รองรับ PNG, JPG, WebP, GIF หรือกด Ctrl+V)</span>
+            <label class="section-title">ข้อมูลสินค้าและโพสต์ TikTok</label>
+            <span class="section-hint">สำหรับชื่อสินค้า, แคปชัน และแท็ก</span>
           </div>
 
-          <!-- Drag and Drop Box -->
-          <div class="dropzone" id="dropZone" tabindex="0" role="button" aria-label="พื้นที่สำหรับอัปโหลดรูปภาพ">
-            <input type="file" id="fileInput" accept="image/*" class="file-input-hidden" aria-hidden="true" multiple>
-            
-            <!-- Empty State -->
-            <div class="dropzone-empty" id="dropzoneEmpty">
-              <div class="upload-icon-bubble">
-                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="17 8 12 3 7 8"></polyline>
-                  <line x1="12" y1="3" x2="12" y2="15"></line>
-                </svg>
-              </div>
-              <p class="upload-primary-text">
-                <strong>คลิกเพื่อเลือกภาพ (เลือกได้หลายภาพ)</strong> หรือลากไฟล์มาวางตรงนี้
-              </p>
-              <p class="upload-sub-text">รองรับการเลือกทีละหลายรูปพร้อมกัน หรือแคปเจอร์แล้วกด <kbd>Ctrl</kbd> + <kbd>V</kbd> เพื่อวางเพิ่มได้เรื่อยๆ</p>
-            </div>
-
-            <!-- Preview State: Multi-image Gallery (Hidden by default) -->
-            <div class="dropzone-preview" id="dropzonePreview" style="display: none;">
-              <div class="gallery-toolbar">
-                <div class="gallery-stats">
-                  <span class="gallery-count-badge" id="galleryCountBadge">0 รูปภาพ</span>
-                  <span class="gallery-size-badge" id="galleryTotalSize">0 KB</span>
-                </div>
-                <div class="gallery-actions">
-                  <button type="button" class="btn-gallery-action" id="btnAddMoreImages">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                    เพิ่มรูปอีก
-                  </button>
-                  <button type="button" class="btn-gallery-action btn-danger-action" id="btnClearAllImages">
-                    ล้างรูปทั้งหมด
-                  </button>
-                </div>
-              </div>
-              <div class="image-gallery-grid" id="imageGalleryGrid">
-                <!-- Dynamic cards populated by JS -->
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Section 1.5: Product Link Input (Optional) -->
-        <div class="card-section product-link-section">
-          <div class="section-label-row">
-            <span class="section-badge"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></span>
-            <label for="productUrlInput" class="section-title">วางลิงก์สินค้า (TikTok Shop / Shopee / Lazada)</label>
-            <span class="section-hint">(ตัวเลือกเสริม: วางลิงก์เพื่อให้ AI ช่วยดึงแบรนด์และข้อมูลสินค้าเพิ่มเติม)</span>
+          <!-- Product Name Input -->
+          <div class="form-group mb-4">
+            <label for="inputProductName" class="form-label">
+              <span>ชื่อสินค้า (product_name)</span>
+              <span class="required-star">*</span>
+            </label>
+            <input 
+              type="text" 
+              id="inputProductName" 
+              class="form-control" 
+              placeholder="เช่น ชุดเซ็ตเสื้อยืดกางเกงขาสั้น สไตล์มินิมอล ใส่สบาย"
+              required
+            >
           </div>
 
-          <div class="product-link-wrapper">
-            <div class="product-link-input-box">
-              <span class="product-link-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="2" y1="12" x2="22" y2="12"></line>
-                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-                </svg>
-              </span>
-              <input 
-                type="url" 
-                id="productUrlInput" 
-                class="product-link-field" 
-                placeholder="วางลิงก์สินค้า เช่น https://vt.tiktok.com/... หรือ https://shopee.co.th/... (ไม่บังคับ)"
-                autocomplete="off"
-              >
-              <button type="button" class="btn-clear-link" id="btnClearProductUrl" style="display: none;" title="ล้างลิงก์">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-              </button>
+          <!-- Caption Textarea -->
+          <div class="form-group mb-4">
+            <div class="form-label-row">
+              <label for="inputCaption" class="form-label">
+                <span>คำอธิบาย / แคปชัน TikTok ปักตะกร้า (caption)</span>
+                <span class="required-star">*</span>
+              </label>
+              <span class="char-counter" id="captionCounter">0 / 2,000</span>
             </div>
-            <div class="product-link-badge-row" id="productLinkBadgeRow" style="display: none;">
-              <span class="platform-tag" id="productPlatformTag">
-                <span class="tag-dot"></span>
-                <span id="productPlatformName">TikTok Shop</span>
-              </span>
-              <span class="link-valid-msg" id="productLinkValidMsg">พร้อมเชื่อมโยงข้อมูลกับ AI</span>
-            </div>
+            <textarea 
+              id="inputCaption" 
+              class="form-control form-textarea" 
+              rows="4" 
+              placeholder="เช่น รีวิวชุดเซ็ตที่ใส่สบายที่สุดแห่งปี! เนื้อผ้านุ่มระบายอากาศดีมาก แมตช์ง่ายได้ทุกวัน พิกัดอยู่ในตะกร้าส้มมุมล่างซ้ายเลยครับ ✨"
+              required
+            ></textarea>
+          </div>
+
+          <!-- Hashtags Input -->
+          <div class="form-group">
+            <label for="inputHashtags" class="form-label">
+              <span>แฮชแท็ก (hashtags)</span>
+            </label>
+            <input 
+              type="text" 
+              id="inputHashtags" 
+              class="form-control" 
+              placeholder="เช่น #รีวิวเสื้อผ้า #TikTokป้ายยา #พิกัดในตะกร้า #แต่งตัวมินิมอล #ของดีบอกต่อ"
+            >
           </div>
         </div>
 
-        <!-- Section 2: Command & Prompt Input -->
+        <!-- Section 2: รูปภาพประกอบคอนเทนต์ (รูปปก 9:16 และ รูปสตอรีบอร์ด 6 ซีน) -->
         <div class="card-section">
           <div class="section-label-row">
             <span class="section-badge">02</span>
-            <label for="promptInput" class="section-title">คำสั่งและสิ่งที่ต้องการให้ทำ</label>
-            <div class="char-counter" id="charCounter">0 / 4,000</div>
+            <label class="section-title">รูปภาพประกอบคอนเทนต์</label>
+            <span class="section-hint">อัปโหลดไฟล์ (เข้า Storage) หรือวาง URL</span>
           </div>
 
-          <!-- Quick Suggestion Chips -->
-          <div class="suggestion-chips" id="suggestionChips">
-            <span class="chips-label">คำสั่งสำเร็จรูป:</span>
-            <button type="button" class="chip-btn chip-active" id="btnDefaultPromptChip">✨ ชุดคำสั่งรีวิว TikTok ปักตะกร้า (6 ซีน + ปก 9:16 + Google Flow)</button>
-          </div>
+          <div class="image-inputs-dual-grid">
+            <!-- Cover Image (9:16) -->
+            <div class="image-uploader-card" id="coverUploadCard">
+              <div class="uploader-header">
+                <span class="uploader-tag">📸 รูปปก TikTok 9:16 (cover_image_url)</span>
+                <span class="uploader-status" id="coverUploadStatus">รอเลือกรูป</span>
+              </div>
+              
+              <div class="uploader-preview-box" id="coverPreviewBox" title="คลิกเพื่อเลือกไฟล์รูปภาพ">
+                <img id="coverPreviewImg" src="" alt="พรีวิวรูปปก" style="display: none;">
+                <div class="uploader-empty-state" id="coverEmptyState">
+                  <div class="uploader-icon">📷</div>
+                  <p class="uploader-prompt">คลิกเพื่อเลือกไฟล์รูปปก (แนวตั้ง 9:16)</p>
+                  <span class="uploader-formats">PNG, JPG, WebP</span>
+                </div>
+              </div>
+              <input type="file" id="coverFileInput" accept="image/*" class="file-input-hidden">
 
-          <!-- Textarea Area -->
-          <div class="textarea-container">
-            <textarea 
-              id="promptInput" 
-              rows="8" 
-              maxlength="4000"
-              placeholder="พิมพ์คำสั่งหรือระบุสิ่งที่ต้องการให้ทำกับรูปภาพนี้... (กด Ctrl + Enter เพื่อส่งคำสั่งได้ทันที)">ช่วยสร้างชุดคอนเทนต์รีวิวสินค้าด้วย AI สำหรับวิดีโอ TikTok แบบปักตะกร้า โดยใช้รูปสินค้าที่ฉันแนบเป็นภาพอ้างอิง และจัดทำตามรายละเอียดต่อไปนี้
+              <div class="uploader-url-field">
+                <label for="inputCoverUrl" class="url-label">หรือวาง URL รูปปกโดยตรง:</label>
+                <input type="url" id="inputCoverUrl" class="form-control form-control-sm" placeholder="https://...">
+              </div>
+            </div>
 
-1. ภาพสตอรีบอร์ดรีวิวสินค้า 6 ซีน
-- สร้างภาพ 1 รูป แบ่งเป็น 6 ช่อง เรียงตามลำดับซีน เพื่อเล่าเรื่องการรีวิวสินค้าตั้งแต่เริ่มจนจบ
-- เน้นการถ่ายสินค้า การสาธิตใช้งาน และรายละเอียดที่น่าสนใจ
-- ไม่ต้องมีข้อความ คำบรรยาย หรือหมายเลขซีนบนภาพ
-- ไม่เห็นใบหน้าผู้ถ่ายหรือผู้สาธิต สามารถเห็นเฉพาะมือได้
-- รูปลักษณ์ สี รูปทรง โลโก้ และรายละเอียดของสินค้าต้องตรงกับภาพอ้างอิงทุกซีน
+            <!-- Storyboard Image (3:2 หรือ 1:1) -->
+            <div class="image-uploader-card" id="storyUploadCard">
+              <div class="uploader-header">
+                <span class="uploader-tag">🖼️ รูปสตอรีบอร์ด 6 ช่อง (story_image_url)</span>
+                <span class="uploader-status" id="storyUploadStatus">รอเลือกรูป</span>
+              </div>
+              
+              <div class="uploader-preview-box" id="storyPreviewBox" title="คลิกเพื่อเลือกไฟล์รูปภาพ">
+                <img id="storyPreviewImg" src="" alt="พรีวิวสตอรีบอร์ด" style="display: none;">
+                <div class="uploader-empty-state" id="storyEmptyState">
+                  <div class="uploader-icon">🖼️</div>
+                  <p class="uploader-prompt">คลิกเพื่อเลือกไฟล์สตอรีบอร์ด (6 ซีน)</p>
+                  <span class="uploader-formats">PNG, JPG, WebP</span>
+                </div>
+              </div>
+              <input type="file" id="storyFileInput" accept="image/*" class="file-input-hidden">
 
-2. พรอมป์ต์ภาษาอังกฤษสำหรับ Google Flow
-- เขียนพรอมป์ต์ 1 ชุด ครอบคลุมทั้ง 6 ซีน โดยใช้ภาษาอังกฤษเท่านั้น
-- ระบุภาพในแต่ละซีน การเคลื่อนไหวของกล้อง การสาธิตสินค้า และเสียงเอฟเฟกต์ให้ชัดเจน
-- ใช้สไตล์รีวิวสินค้าจริง ดูเป็นธรรมชาติ เน้นตัวสินค้าและการใช้งาน
-- ไม่มีเสียงพากย์ ไม่มีบทพูด และไม่มีเพลงประกอบ ใช้เฉพาะเสียงเอฟเฟกต์ที่สัมพันธ์กับภาพ
-- ไม่เห็นใบหน้าบุคคล สามารถเห็นเฉพาะมือขณะหยิบจับหรือสาธิตสินค้าได้
-- ไม่มีข้อความหรือคำบรรยายเพิ่มเติมบนวิดีโอ
-- สินค้าต้องตรงกับภาพอ้างอิงตลอดทั้งวิดีโอ ห้ามเปลี่ยนรูปลักษณ์หรือเพิ่มคุณสมบัติที่ไม่มีข้อมูลรองรับ
-- จัดองค์ประกอบสำหรับวิดีโอแนวตั้ง อัตราส่วน 9:16
-
-3. ชื่อสินค้า คำอธิบาย แฮชแท็ก และปกคลิป
-- ตั้งชื่อสินค้าเป็นภาษาไทยให้กระชับ น่าสนใจ และตรงกับสินค้าจริง
-- เขียนคำอธิบายสำหรับโพสต์ TikTok พร้อมคำเชิญชวนให้กดดูสินค้าที่ตะกร้า โดยไม่กล่าวอ้างเกินจริง
-- ใส่แฮชแท็กที่เกี่ยวข้องกับสินค้าและการใช้งาน
-- สร้างภาพปกคลิป 1 รูป อัตราส่วน 9:16 ให้สินค้าโดดเด่น พร้อมข้อความภาษาไทยสั้น ๆ ที่อ่านง่ายและสะกดถูกต้อง
-
-ผลลัพธ์ที่ต้องการ:
-- ภาพ 2 รูป ได้แก่ ภาพสตอรีบอร์ดรวม 6 ซีน และภาพปกคลิป
-- พรอมป์ต์ภาษาอังกฤษสำหรับ Google Flow จำนวน 1 ชุด
-- ข้อความภาษาไทย ได้แก่ ชื่อสินค้า คำอธิบาย และแฮชแท็ก</textarea>
-            
-            <div class="textarea-footer">
-              <span class="shortcut-tip"><kbd>Ctrl</kbd> + <kbd>Enter</kbd> เพื่อส่งคำสั่ง</span>
-              <button type="button" class="btn-ghost" id="btnClearPrompt" style="display: none;">ล้างข้อความ</button>
+              <div class="uploader-url-field">
+                <label for="inputStoryUrl" class="url-label">หรือวาง URL สตอรีบอร์ดโดยตรง:</label>
+                <input type="url" id="inputStoryUrl" class="form-control form-control-sm" placeholder="https://...">
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Section 2.5: Image Generation Mode Selector -->
-        <div class="card-section mode-select-section">
+        <!-- Section 3: พรอมต์สำหรับ Google Flow & พรอมต์รูปภาพ -->
+        <div class="card-section">
           <div class="section-label-row">
-            <span class="section-badge">🖼️</span>
-            <label class="section-title">รูปแบบภาพที่ต้องการสร้าง</label>
-            <span class="section-hint">(เลือกได้ว่าต้องการให้ตรงกับภาพจริง 100% หรือให้ AI วาดใหม่)</span>
+            <span class="section-badge">03</span>
+            <label class="section-title">พรอมต์สำหรับทำคลิปและทำรูป</label>
+            <span class="section-hint">สำหรับนำไปใส่ใน Google Flow / Image AI</span>
           </div>
 
-          <div class="render-mode-grid">
-            <label class="mode-card active" id="labelModeReal">
-              <input type="radio" name="imageMode" id="modeRealProduct" value="real" checked>
-              <div class="mode-card-content">
-                <div class="mode-header">
-                  <span class="mode-badge-tag">แนะนำ • ตรงปก 100%</span>
-                  <span class="mode-radio-dot"></span>
-                </div>
-                <div class="mode-title">🎯 สินค้าจริงตรงปก 100% (Product Studio Mockup)</div>
-                <div class="mode-desc">นำภาพถ่ายสินค้าจริงของคุณมาจัดสตอรีบอร์ด 6 ช่อง และเรนเดอร์ปก TikTok 9:16 ลายสกรีน โลโก้ และสีเสื้อจะเหมือนของจริงทุกประการ</div>
-              </div>
-            </label>
+          <!-- Video Prompt (Google Flow) -->
+          <div class="form-group mb-4">
+            <div class="form-label-row">
+              <label for="inputVideoPrompt" class="form-label">
+                <span>🎬 พรอมต์ทำคลิปวิดีโอ (video_prompt - Google Flow 6 ซีน)</span>
+              </label>
+              <span class="char-counter" id="videoPromptCounter">0 / 4,000</span>
+            </div>
+            <textarea 
+              id="inputVideoPrompt" 
+              class="form-control form-textarea" 
+              rows="5" 
+              placeholder="[Scene 1] Camera unboxes package on clean desk, showing product details. SFX: paper rustling.&#10;[Scene 2] Macro close-up shot panning across fabric texture and seams. SFX: fabric swoosh.&#10;[Scene 3] Demonstrating product flexibility and comfort with natural hand motion.&#10;[Scene 4] Close-up on prints and logo highlights under commercial studio lighting.&#10;[Scene 5] Quick demonstration of key features and durability.&#10;[Scene 6] Final hero flat-lay shoot with clean lighting. No human faces, TikTok 9:16 vertical."
+            ></textarea>
+          </div>
 
-            <label class="mode-card" id="labelModeAi">
-              <input type="radio" name="imageMode" id="modeAiGen" value="ai">
-              <div class="mode-card-content">
-                <div class="mode-header">
-                  <span class="mode-badge-tag mode-tag-ai">Creative AI Art</span>
-                  <span class="mode-radio-dot"></span>
-                </div>
-                <div class="mode-title">🎨 AI วาดภาพขึ้นใหม่ (AI Re-imagined)</div>
-                <div class="mode-desc">ให้โมเดล AI วาดภาพใหม่ทั้งหมดจากคำบรรยาย (ลวดลายและฟอนต์อาจแตกต่างจากของจริง)</div>
-              </div>
-            </label>
+          <!-- Image Prompt -->
+          <div class="form-group">
+            <div class="form-label-row">
+              <label for="inputImagePrompt" class="form-label">
+                <span>🎨 พรอมต์สำหรับทำรูปสินค้า (image_prompt)</span>
+              </label>
+              <span class="char-counter" id="imagePromptCounter">0 / 4,000</span>
+            </div>
+            <textarea 
+              id="inputImagePrompt" 
+              class="form-control form-textarea" 
+              rows="4" 
+              placeholder="Commercial e-commerce review 6-panel storyboard photo collage of exact product, showing unboxing, macro texture, styling, details, durability, and hero flat-lay display under clean studio lighting. Sharp 8k focus, vibrant colors, no human faces."
+            ></textarea>
           </div>
         </div>
 
-        <!-- Section 3: Action Buttons -->
+        <!-- Action Footer -->
         <div class="action-footer">
           <div class="footer-left">
-            <div class="pill-info" id="payloadSummary">
-              <span class="pill-icon">ℹ️</span>
-              <span id="summaryText">ยังไม่ได้เลือกรูปภาพ</span>
-            </div>
+            <button type="button" class="btn-sample" id="btnFillSample">
+              ✨ เติมข้อมูลตัวอย่าง (Fill Sample)
+            </button>
+            <button type="button" class="btn-secondary" id="btnClearForm">
+              ล้างฟอร์ม
+            </button>
           </div>
 
           <div class="footer-right">
-            <button type="button" class="btn-secondary" id="btnResetAll">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
-              รีเซ็ตทั้งหมด
-            </button>
-            <button type="button" class="btn-primary" id="btnSubmitCommand">
-              <span class="btn-spinner" id="btnSpinner" style="display: none;"></span>
-              <span class="btn-icon-wrapper" id="btnIcon">
+            <button type="button" class="btn-primary" id="btnSaveData">
+              <span class="btn-spinner" id="btnSaveSpinner" style="display: none;"></span>
+              <span class="btn-icon-wrapper" id="btnSaveIcon">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="22" y1="2" x2="11" y2="13"></line>
-                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                  <polyline points="7 3 7 8 15 8"></polyline>
                 </svg>
               </span>
-              <span id="btnText">ส่งคำสั่งประมวลผล</span>
+              <span id="btnSaveText">💾 บันทึกข้อมูลลง Supabase</span>
             </button>
           </div>
         </div>
       </section>
 
-      <!-- Execution Result / Response Feed (Dynamic) -->
-      <section class="results-section" id="resultsSection" style="display: none;">
+      <!-- Section: แสดงรายการข้อมูลที่บันทึกไว้ใน Supabase (chatgpt_logs) -->
+      <section class="records-section" id="recordsSection">
         <div class="results-header">
           <div class="results-title-group">
             <span class="live-dot"></span>
-            <h3>✨ ผลลัพธ์ชุดคอนเทนต์จาก AI (AI Generation Result)</h3>
+            <h3>📦 รายการข้อมูลที่บันทึกไว้ใน Supabase (chatgpt_logs)</h3>
+            <span class="badge-count" id="recordsCountBadge">0 รายการ</span>
           </div>
           <div class="results-header-actions">
-            <span class="timestamp-tag" id="resultTimestamp">เพิ่งส่งไป</span>
-            <button type="button" class="btn-refresh-res" id="btnRefreshResult" title="รีเฟรชข้อมูลจาก Supabase">
+            <button type="button" class="btn-refresh-res" id="btnRefreshRecords" title="รีเฟรชข้อมูลจาก Supabase">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-              รีเฟรชผลลัพธ์
-            </button>
-            <button type="button" class="btn-hide-res" id="btnHideResult" title="ซ่อนหน้าต่างผลลัพธ์นี้">
-              ✕ ซ่อนผลลัพธ์
+              รีเฟรชรายการ
             </button>
           </div>
         </div>
 
-        <!-- AI Delivered Result Card -->
-        <div class="result-card glass-panel" id="aiResultCard">
-          <!-- Status Banner -->
-          <div class="ai-status-banner">
-            <div class="status-left">
-              <span class="status-badge-done">COMPLETED</span>
-              <span class="status-text-done">AI ประมวลผลและสร้างชุดคอนเทนต์ครบ 3 อย่างเรียบร้อย</span>
-            </div>
-            <span class="record-id-tag" id="displayRecordId">ID: Loading...</span>
+        <div class="records-list" id="recordsList">
+          <!-- Loading state -->
+          <div class="records-loading" id="recordsLoading">
+            <span>กำลังโหลดข้อมูลจาก Supabase...</span>
           </div>
-
-          <!-- Section 1: Generated Images Grid -->
-          <div class="ai-content-block">
-            <h4 class="block-title">
-              <span class="icon">🖼️</span> 1. รูปภาพที่สร้างขึ้นโดย AI (2 ภาพ)
-            </h4>
-            <div class="generated-images-grid">
-              <!-- Storyboard 6 Scenes -->
-              <div class="generated-img-card">
-                <div class="img-preview-box">
-                  <img id="aiImgStoryboard" src="" alt="ภาพสตอรีบอร์ดรีวิวสินค้า 6 ซีน">
-                  <div class="img-badge-overlay">สตอรีบอร์ด 6 ซีน (3:2)</div>
-                </div>
-                <div class="img-card-footer">
-                  <div class="img-card-info">
-                    <strong>ภาพสตอรีบอร์ดรวม 6 ซีน</strong>
-                    <span>เรียงลำดับการรีวิวสินค้า 6 ช่อง</span>
-                  </div>
-                  <button type="button" id="btnDownloadStoryboard" class="btn-img-action">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                    ดาวน์โหลดภาพ (.jpg)
-                  </button>
-                </div>
-              </div>
-
-              <!-- TikTok Cover 9:16 -->
-              <div class="generated-img-card">
-                <div class="img-preview-box vertical-box">
-                  <img id="aiImgCover" src="" alt="ภาพปกคลิป TikTok 9:16">
-                  <div class="img-badge-overlay">ปก TikTok (9:16)</div>
-                </div>
-                <div class="img-card-footer">
-                  <div class="img-card-info">
-                    <strong>ภาพปกคลิป TikTok</strong>
-                    <span>อัตราส่วนแนวตั้ง 9:16</span>
-                  </div>
-                  <button type="button" id="btnDownloadCover" class="btn-img-action">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                    ดาวน์โหลดภาพ (.jpg)
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="divider"></div>
-
-          <!-- Section 2: Thai Content (Title, Caption, Hashtags) -->
-          <div class="ai-content-block">
-            <div class="block-header-row">
-              <h4 class="block-title">
-                <span class="icon">✍️</span> 2. ชุดข้อความภาษาไทยสำหรับ TikTok (ปักตะกร้า)
-              </h4>
-              <button type="button" class="btn-copy-section" id="btnCopyThaiContent">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                คัดลอกข้อความภาษาไทย
-              </button>
-            </div>
-
-            <div class="thai-content-box">
-              <div class="content-field">
-                <label class="field-label">🏷️ ชื่อสินค้า:</label>
-                <div class="field-value highlight" id="aiProductTitle">-</div>
-              </div>
-
-              <div class="content-field">
-                <label class="field-label">📝 คำอธิบายคลิป TikTok (พร้อม Call to Action):</label>
-                <div class="field-value" id="aiCaption">-</div>
-              </div>
-
-              <div class="content-field">
-                <label class="field-label">#️⃣ แฮชแท็ก:</label>
-                <div class="field-value hashtags" id="aiHashtags">-</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="divider"></div>
-
-          <!-- Section 3: Google Flow English Prompt -->
-          <div class="ai-content-block">
-            <div class="block-header-row">
-              <h4 class="block-title">
-                <span class="icon">🎬</span> 3. พรอมป์ต์ภาษาอังกฤษสำหรับ Google Flow (6 ซีน)
-              </h4>
-              <button type="button" class="btn-copy-section" id="btnCopyGoogleFlow">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                คัดลอกพรอมป์ต์ Google Flow
-              </button>
-            </div>
-
-            <div class="code-box">
-              <pre><code id="aiGoogleFlowPrompt">-</code></pre>
-            </div>
+          <!-- Empty state -->
+          <div class="records-empty" id="recordsEmpty" style="display: none;">
+            <p>ยังไม่มีข้อมูลในตาราง chatgpt_logs กรอกข้อมูลในฟอร์มด้านบนแล้วกดบันทึกได้เลย!</p>
           </div>
         </div>
       </section>
