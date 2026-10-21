@@ -1231,9 +1231,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const isRealProductMode = !document.getElementById('modeAiGen')?.checked;
     let storyboard_url = '';
     let cover_url = '';
+    let finalStoryboardPrompt = '';
+    let finalCoverPrompt = '';
 
     if (isRealProductMode && uploadedImageUrls && uploadedImageUrls.length > 0) {
       console.log('🎯 ทำงานในโหมด: สินค้าจริงตรงปก 100% (Product Studio Mockup)');
+      finalStoryboardPrompt = `Product studio collage for: ${visual_description}`;
+      finalCoverPrompt = `Vertical 9:16 TikTok cover for: ${visual_description}`;
 
       // 2. สร้างภาพสตอรีบอร์ด 6 ช่อง จากรูปสินค้าจริง
       updateLoadingProgress(70, 'สร้างสตอรีบอร์ดสินค้าจริง 100%', 'กำลังจัดวางภาพสินค้าจริงลงในสตอรีบอร์ด 6 ช่อง คมชัดตรงปก...', 2);
@@ -1245,9 +1249,9 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       console.log('🎨 ทำงานในโหมด: AI วาดภาพขึ้นใหม่ (Creative AI Art)');
 
-      const finalStoryboardPrompt = `Commercial e-commerce review 6-panel photo storyboard collage. The EXACT product featured consistently across all 6 panels is: ${visual_description}. Panel 1: unboxing the package on a clean studio table. Panel 2: close-up macro shot showing fabric texture, stitch details, prints and gradient colors. Panel 3: demonstration of the product fit, styling, and comfort. Panel 4: close-up detailing the graphics, logos and distinctive design. Panel 5: demonstration of features, elasticity or durability. Panel 6: final hero flat-lay display with matching accessories under bright clean studio lights. Realistic commercial product photography, sharp focus, no human faces, only hands holding or demonstrating.`;
+      finalStoryboardPrompt = `Commercial e-commerce review 6-panel photo storyboard collage. The EXACT product featured consistently across all 6 panels is: ${visual_description}. Panel 1: unboxing the package on a clean studio table. Panel 2: close-up macro shot showing fabric texture, stitch details, prints and gradient colors. Panel 3: demonstration of the product fit, styling, and comfort. Panel 4: close-up detailing the graphics, logos and distinctive design. Panel 5: demonstration of features, elasticity or durability. Panel 6: final hero flat-lay display with matching accessories under bright clean studio lights. Realistic commercial product photography, sharp focus, no human faces, only hands holding or demonstrating.`;
 
-      const finalCoverPrompt = `Vertical 9:16 high-end commercial hero photo for TikTok video cover featuring the EXACT product: ${visual_description}. Displayed in a trendy aesthetic modern studio setting with cinematic commercial lighting, subtle highlights, accurate vibrant product colors, clean elegant background, sharp 8k focus product hero shoot, no human faces.`;
+      finalCoverPrompt = `Vertical 9:16 high-end commercial hero photo for TikTok video cover featuring the EXACT product: ${visual_description}. Displayed in a trendy aesthetic modern studio setting with cinematic commercial lighting, subtle highlights, accurate vibrant product colors, clean elegant background, sharp 8k focus product hero shoot, no human faces.`;
 
       // 2. เจนภาพสตอรีบอร์ด 6 ซีน ด้วย AI
       updateLoadingProgress(70, 'สร้างสตอรีบอร์ด 6 ซีน (AI Art)', 'AI กำลังเรนเดอร์ภาพสตอรีบอร์ดรวม 6 ซีนตามสินค้าจริง...', 2);
@@ -1265,35 +1269,56 @@ document.addEventListener('DOMContentLoaded', () => {
       cover_url = (uploadedImageUrls && (uploadedImageUrls[1] || uploadedImageUrls[0])) || '';
     }
 
-    // 4. บันทึกผลงานลงตาราง generation_results
-    updateLoadingProgress(96, 'จัดเก็บผลงานลงคลัง', 'กำลังบันทึกลงฐานข้อมูลและคลังเก็บของ...', 3);
+    // 4. บันทึกผลงานลงตาราง chatgpt_logs ใน Supabase
+    updateLoadingProgress(96, 'จัดเก็บผลงานลง Supabase', 'กำลังบันทึกลงตาราง chatgpt_logs...', 3);
 
-    const finalResult = {
-      command_id: commandId,
-      title,
-      caption,
-      hashtags,
-      google_flow_prompt,
-      storyboard_url,
-      cover_url
+    const logRecord = {
+      product_name: title,
+      caption: caption,
+      hashtags: hashtags,
+      cover_image_url: cover_url,
+      story_image_url: storyboard_url,
+      video_prompt: google_flow_prompt,
+      image_prompt: finalStoryboardPrompt || visual_description,
+      prompt: promptText || '(ไม่มีคำสั่งข้อความ)',
+      response: JSON.stringify(parsed)
     };
 
+    let savedId = null;
     if (supabase) {
       try {
         const { data: insRows, error: insErr } = await supabase
-          .from('generation_results')
-          .insert([finalResult])
+          .from('chatgpt_logs')
+          .insert([logRecord])
           .select();
 
-        if (insRows && insRows[0]) {
-          finalResult.id = insRows[0].id;
+        if (insErr) {
+          console.error('Error saving to chatgpt_logs:', insErr);
+        } else if (insRows && insRows[0]) {
+          savedId = insRows[0].id;
+          console.log('✓ บันทึกลงตาราง chatgpt_logs สำเร็จ ID:', savedId);
         }
-
-        await supabase.from('commands').update({ status: 'completed' }).eq('id', commandId);
       } catch (dbErr) {
         console.warn('DB save notice:', dbErr);
       }
     }
+
+    const finalResult = {
+      id: savedId || Date.now(),
+      product_name: title,
+      title,
+      caption,
+      hashtags,
+      google_flow_prompt,
+      video_prompt: google_flow_prompt,
+      image_prompt: finalStoryboardPrompt || visual_description,
+      storyboard_url,
+      cover_url,
+      story_image_url: storyboard_url,
+      cover_image_url: cover_url,
+      prompt: promptText,
+      response: parsed
+    };
 
     return finalResult;
   }
@@ -1380,83 +1405,26 @@ document.addEventListener('DOMContentLoaded', () => {
         snapshotActiveSession();
       }
 
-      // Step 2: Insert Record into Supabase `commands` Table
-      updateLoadingProgress(45, 'บันทึกเข้าคิวงาน AI', 'กำลังส่งข้อมูลเข้าตาราง commands...', 1);
-
-      let insertData = null;
-      let insertError = null;
-
-      const fullPayload = {
-        prompt: promptText || (productUrl ? `ลิงก์สินค้า: ${productUrl}` : '(ไม่มีคำสั่งข้อความ)'),
-        image_url: uploadedImageUrls[0] || null,
-        image_urls: uploadedImageUrls,
-        image_names: uploadedFileNames,
-        image_count: uploadedImageUrls.length,
-        status: 'pending',
-        result_data: {
-          product_url: productUrl,
-          image_urls: uploadedImageUrls,
-          image_names: uploadedFileNames,
-          image_count: uploadedImageUrls.length
-        }
-      };
-
-      const res1 = await supabase.from('commands').insert([fullPayload]).select();
-
-      if (res1.error) {
-        const fallbackPayload = {
-          prompt: promptText || (productUrl ? `ลิงก์สินค้า: ${productUrl}` : '(ไม่มีคำสั่งข้อความ)'),
-          image_url: uploadedImageUrls[0] || null,
-          image_name: uploadedFileNames[0] || null,
-          status: 'pending',
-          result_data: {
-            product_url: productUrl,
-            image_urls: uploadedImageUrls,
-            image_names: uploadedFileNames,
-            image_count: uploadedImageUrls.length
-          }
-        };
-        const res2 = await supabase.from('commands').insert([fallbackPayload]).select();
-        insertData = res2.data;
-        insertError = res2.error;
-      } else {
-        insertData = res1.data;
-        insertError = res1.error;
-      }
-
-      if (insertError) {
-        throw new Error(`บันทึกลงฐานข้อมูลไม่สำเร็จ: ${insertError.message}`);
-      }
-
-      const insertedRecord = insertData && insertData[0] ? insertData[0] : null;
-      const commandId = insertedRecord ? insertedRecord.id : null;
-
-      updateLoadingProgress(55, 'AI Engine กำลังเริ่มทำงาน', 'ตรวจพบคำสั่งแล้ว กำลังประมวลผลชุดคอนเทนต์...', 2);
+      // Step 2: AI Engine Start (Client-Side Direct AI Generation)
+      updateLoadingProgress(45, 'AI Engine กำลังเริ่มทำงาน', 'ส่งข้อมูลให้ GPT-4o วิเคราะห์และสร้างชุดคอนเทนต์...', 2);
       updateVaultCountBadge();
 
-      // Step 3: Direct Client AI Generation (ยิงตรงเข้า OpenAI ทันที ไม่ต้องง้อ Railway!)
+      // Step 3: Direct Client AI Generation (สร้างชุดคอนเทนต์และบันทึกลง chatgpt_logs ใน Supabase ทันที)
       const apiKey = (typeof CONFIG !== 'undefined' && CONFIG.OPENAI_API_KEY) ? CONFIG.OPENAI_API_KEY : '';
-      let directGenerated = false;
+      if (!apiKey) {
+        throw new Error('ไม่พบคีย์ OPENAI_API_KEY ใน config.js');
+      }
 
-      if (apiKey) {
-        try {
-          console.log('🚀 เริ่มต้นสร้างคอนเทนต์และภาพ AI โดยตรงจากหน้าเว็บ...');
-          const directResult = await callDirectAiGeneration({
-            promptText: promptText || '(ไม่มีคำสั่งข้อความ)',
-            uploadedImageUrls,
-            commandId,
-            productUrl
-          });
+      console.log('🚀 เริ่มต้นสร้างคอนเทนต์และภาพ AI โดยตรงจากหน้าเว็บ...');
+      const directResult = await callDirectAiGeneration({
+        promptText: promptText || '(ไม่มีคำสั่งข้อความ)',
+        uploadedImageUrls,
+        productUrl
+      });
 
-          if (directResult) {
-            directGenerated = true;
-            deliverResultInRealtime(directResult);
-            return;
-          }
-        } catch (directErr) {
-          console.error('Direct AI Gen notice:', directErr);
-          showToast(`ข้อสังเกต: ${directErr.message}`, 'error');
-        }
+      if (directResult) {
+        deliverResultInRealtime(directResult);
+        return;
       }
 
       // Step 3 (Fallback): Polling if direct generation was bypassed
@@ -1589,61 +1557,51 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Fetch Latest Completed Result from Supabase (Checks generation_results or commands)
+  // Fetch Latest Completed Result from Supabase (Checks chatgpt_logs)
   async function fetchLatestCompletedResult() {
     if (!supabase) return;
     try {
       let resultItem = null;
       let recordId = null;
 
-      // 1. ตรวจสอบจากตารางใหม่ generation_results ก่อน
+      // 1. ตรวจสอบจากตาราง chatgpt_logs
       try {
         const { data: resDataList, error: resError } = await supabase
-          .from('generation_results')
+          .from('chatgpt_logs')
           .select('*')
           .order('created_at', { ascending: false })
           .limit(5);
 
         if (!resError && resDataList && resDataList.length > 0) {
-          const excludedIds = ['021c07c5-e340-4516-b93a-9ded0d1c3278', '9dc163a8-744d-4e7c-9ca1-5246e8b271b1', '5258062e-eba4-4dc3-869f-b971cd3438da'];
-          const validRow = resDataList.find(r => !excludedIds.includes(r.id));
+          const deletedIds = getDeletedVaultIds();
+          const validRow = resDataList.find(r => !deletedIds.includes(String(r.id)));
           if (validRow) {
-            recordId = validRow.command_id || validRow.id;
+            recordId = validRow.id;
             resultItem = {
-              title: validRow.title,
+              id: validRow.id,
+              title: validRow.product_name || 'ชุดคอนเทนต์รีวิวสินค้า',
+              product_name: validRow.product_name,
               caption: validRow.caption,
               hashtags: validRow.hashtags,
-              google_flow_prompt: validRow.google_flow_prompt,
+              google_flow_prompt: validRow.video_prompt || '',
+              video_prompt: validRow.video_prompt,
+              image_prompt: validRow.image_prompt,
               images: {
-                storyboard_url: validRow.storyboard_url,
-                cover_url: validRow.cover_url
-              }
+                storyboard_url: validRow.story_image_url,
+                cover_url: validRow.cover_image_url
+              },
+              storyboard_url: validRow.story_image_url,
+              cover_url: validRow.cover_image_url
             };
           }
         }
       } catch (e) {
-        console.log('ตาราง generation_results ยังไม่ถูกสร้าง กำลังดึงจาก commands...');
-      }
-
-      // 2. ถ้ายังไม่มี ให้ดึงจากตาราง commands (ฟิลด์ result_data)
-      if (!resultItem) {
-        const { data: cmdList, error: cmdError } = await supabase
-          .from('commands')
-          .select('*')
-          .eq('status', 'completed')
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        if (!cmdError && cmdList && cmdList.length > 0) {
-          const record = cmdList[0];
-          recordId = record.id;
-          resultItem = record.result_data;
-        }
+        console.log('ยังไม่สามารถดึงจาก chatgpt_logs ได้:', e);
       }
 
       // 3. แสดงผลลัพธ์บนหน้าเว็บแบบไดนามิก 100%
       if (resultItem) {
-        document.getElementById('displayRecordId').textContent = `ID: ${recordId ? recordId.substring(0, 8) : 'Live'}...`;
+        document.getElementById('displayRecordId').textContent = `ID: ${recordId ? String(recordId).substring(0, 8) : 'Live'}...`;
         resultsSection.style.display = 'block';
 
         if (resultItem.images) {
@@ -1855,10 +1813,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 5. ส่งคำสั่งลบไปยังฐานข้อมูล Supabase ด้วย (ถ้ามีสิทธิ์)
     try {
       if (supabase) {
-        await supabase.from('generation_results').delete().eq('id', item.id);
-        if (item.command_id) {
-          await supabase.from('commands').delete().eq('id', item.command_id);
-        }
+        await supabase.from('chatgpt_logs').delete().eq('id', item.id);
       }
     } catch (err) {
       console.log('Server deletion notice:', err);
@@ -1883,7 +1838,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // กำหนดข้อมูลลงฟิลด์
     if (vaultDetailTitle) vaultDetailTitle.textContent = item.title || 'ชุดคอนเทนต์รีวิวสินค้า';
-    if (vaultDetailId) vaultDetailId.textContent = `ID: ${item.id ? item.id.substring(0, 8) : '...'}...`;
+    if (vaultDetailId) vaultDetailId.textContent = `ID: ${item.id ? String(item.id).substring(0, 8) : '...'}...`;
     if (vaultDetailDate) vaultDetailDate.textContent = `วันที่สร้าง: ${formatDate(item.created_at) || 'วันนี้'}`;
 
     if (detailImgStoryboard) detailImgStoryboard.src = item.storyboard_url || '';
@@ -2020,71 +1975,37 @@ document.addEventListener('DOMContentLoaded', () => {
     const allItems = [];
 
     try {
-      // 1. ดึงจากตาราง generation_results
+      // 1. ดึงจากตาราง chatgpt_logs
       const deletedIds = getDeletedVaultIds();
-      const excludedIds = ['021c07c5-e340-4516-b93a-9ded0d1c3278', '9dc163a8-744d-4e7c-9ca1-5246e8b271b1', '5258062e-eba4-4dc3-869f-b971cd3438da', ...deletedIds];
 
       try {
-        const { data: genData } = await supabase
-          .from('generation_results')
+        const { data: logData, error: logErr } = await supabase
+          .from('chatgpt_logs')
           .select('*')
           .order('created_at', { ascending: false });
 
-        if (genData && genData.length > 0) {
-          genData.forEach(row => {
-            if (excludedIds.includes(row.id)) return; // ข้ามรายการเก่าหรือรายการที่ถูกลบ
+        if (!logErr && logData && logData.length > 0) {
+          logData.forEach(row => {
+            if (deletedIds.includes(String(row.id))) return;
             allItems.push({
               id: row.id,
-              command_id: row.command_id,
-              title: row.title || 'ชุดคอนเทนต์รีวิวสินค้า',
+              command_id: row.id,
+              title: row.product_name || 'ชุดคอนเทนต์รีวิวสินค้า',
+              product_name: row.product_name,
               caption: row.caption || '',
               hashtags: row.hashtags || '',
-              google_flow_prompt: row.google_flow_prompt || '',
-              storyboard_url: row.storyboard_url || '',
-              cover_url: row.cover_url || '',
+              google_flow_prompt: row.video_prompt || '',
+              video_prompt: row.video_prompt || '',
+              image_prompt: row.image_prompt || '',
+              storyboard_url: row.story_image_url || '',
+              cover_url: row.cover_image_url || '',
               created_at: row.created_at,
-              source: 'generation_results'
+              source: 'chatgpt_logs'
             });
           });
         }
       } catch (err) {
-        console.log('ยังไม่มีตาราง generation_results ดึงจาก commands ต่อ...');
-      }
-
-      // 2. ดึงจากตาราง commands (completed)
-      try {
-        const { data: cmdData } = await supabase
-          .from('commands')
-          .select('*')
-          .eq('status', 'completed')
-          .order('created_at', { ascending: false });
-
-        if (cmdData && cmdData.length > 0) {
-          cmdData.forEach(row => {
-            if (excludedIds.includes(row.id)) return;
-            const res = row.result_data;
-            if (res && res.title) {
-              // เช็คไม่ให้ซ้ำ ID
-              const exists = allItems.some(item => item.id === row.id || item.command_id === row.id);
-              if (!exists) {
-                allItems.push({
-                  id: row.id,
-                  command_id: row.id,
-                  title: res.title,
-                  caption: res.caption || '',
-                  hashtags: res.hashtags || '',
-                  google_flow_prompt: res.google_flow_prompt || '',
-                  storyboard_url: res.images?.storyboard_url || '',
-                  cover_url: res.images?.cover_url || '',
-                  created_at: row.created_at,
-                  source: 'commands'
-                });
-              }
-            }
-          });
-        }
-      } catch (err) {
-        console.error('Error fetching commands:', err);
+        console.error('Error fetching chatgpt_logs:', err);
       }
 
       // อัปเดตตัวเลข badge
@@ -2166,7 +2087,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function loadVaultItemIntoView(item) {
     closeVault();
 
-    document.getElementById('displayRecordId').textContent = `ID: ${item.id.substring(0, 8)}...`;
+    document.getElementById('displayRecordId').textContent = `ID: ${item.id ? String(item.id).substring(0, 8) : 'Live'}...`;
     
     if (item.storyboard_url) {
       aiImgStoryboard.src = item.storyboard_url;
@@ -2198,11 +2119,10 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       let count = 0;
       const deletedIds = getDeletedVaultIds();
-      const excludedIds = ['021c07c5-e340-4516-b93a-9ded0d1c3278', '9dc163a8-744d-4e7c-9ca1-5246e8b271b1', '5258062e-eba4-4dc3-869f-b971cd3438da', ...deletedIds];
 
-      const { data: gList } = await supabase.from('generation_results').select('id');
+      const { data: gList } = await supabase.from('chatgpt_logs').select('id');
       if (gList && gList.length > 0) {
-        count = gList.filter(r => !excludedIds.includes(r.id)).length;
+        count = gList.filter(r => !deletedIds.includes(String(r.id))).length;
       }
 
       if (vaultCountBadge) {

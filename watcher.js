@@ -12,8 +12,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // ดึงค่าคอนฟิกจาก process.env (สำหรับ Cloud/Railway) หรือจาก .env (สำหรับรันบนคอม)
-let SUPABASE_URL = process.env.SUPABASE_URL || "https://rxowuthcdgqharqncrsd.supabase.co";
-let SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4b3d1dGhjZGdxaGFycW5jcnNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIxMTEzMTAsImV4cCI6MjEwNzY4NzMxMH0.YqkRcUOymTd4QG_Xlrbh-EVtNwTgedZUmsD6HQSTGkk";
+let SUPABASE_URL = process.env.SUPABASE_URL || "https://taytdxazdippihjpdroi.supabase.co";
+let SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRheXRkeGF6ZGlwcGloanBkcm9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1NDgxMjAsImV4cCI6MjEwODEyNDEyMH0.aDLPSQH58Nbd_mOYH8AbH9xTmb7YikcDqkCQGQU7Cr8";
 
 let GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 let OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
